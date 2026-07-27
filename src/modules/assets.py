@@ -20,7 +20,8 @@ class AssetsModule(BaseModule):
     """
 
     def register_tools(self, server: FastMCP) -> None:
-        #ADDING TOOL FOR RESOURCE PULLING:
+        super().register_tools(server)
+
         self._add_tool(
                 server=server, 
                 method=self.get_assets_schema, 
@@ -55,10 +56,11 @@ class AssetsModule(BaseModule):
                     openWorldHint=False,
                 )
         )
-        # self._add_tool(server, self.get_vulnerable_assets, "get_vulnerable_assets")
 
     def register_resources(self, server: FastMCP) -> None:
         """Register the Assets schema resources with the MCP Server."""
+        super().register_resources(server)
+
         
         resource = TextResource(
             uri=AnyUrl(ASSETS_SCHEMA_URI),
@@ -69,8 +71,9 @@ class AssetsModule(BaseModule):
         )
         
         self._add_resource(server, resource)
+
         
-    #ADDING TOOL FOR ASSETS SCHEMA
+    #TOOL FOR ASSETS SCHEMA
     def get_assets_schema(self) -> str:
         """Retrieves the complete Claroty CTD Assets Search Schema, Filter Keys, and Guide.
         

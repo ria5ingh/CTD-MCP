@@ -20,7 +20,9 @@ class InsightsModule(BaseModule):
     connections, unsecured protocols, and PLC manipulations) across the industrial network.
     """
 
-    def register_tools(self, server: FastMCP) -> None:
+    def register_tools(self, server: FastMCP) -> None:  
+        super().register_tools(server)
+
         """Registers the Insights tools with the MCP Server."""
         
         self._add_tool(
@@ -61,8 +63,8 @@ class InsightsModule(BaseModule):
 
         self._add_tool(
             server=server,
-            method=self.filter_assets_by_insight,
-            name= "filter_assets_by_insight",
+            method=self.filter_assets_by_insight_key,
+            name= "filter_assets_by_insight_key",
             annotations=ToolAnnotations(
                  readOnlyHint=True,
                  destructiveHint=False,
@@ -74,6 +76,7 @@ class InsightsModule(BaseModule):
     #register resources
     def register_resources(self, server: FastMCP) -> None:
         """Register the static Insights schema resources with the MCP Server."""
+        super().register_resources(server)
         
         resource = TextResource(
             uri=AnyUrl(INSIGHTS_SCHEMA_URI),
@@ -90,21 +93,17 @@ class InsightsModule(BaseModule):
         """Retrieves the complete Claroty CTD Insights Search Schema, Filter Keys, and Guide.
         
         Call this tool BEFORE executing search_insights if to look up 
-        allowed filter keys, insight names, required data types, or integer enum mappings.
+        allowed filter keys, required data types, or integer enum mappings.
         """
         return INSIGHTS_SCHEMA_DOCS
 
+
     def search_insights(
         self,
-        exact_insight: str | list[str] | None = Field(
-            default=None,
-            description="Specific insight name to filter by. Accepts a single string. Call `get_insights_schema` tool for allowed insight names. Defaults to all insights if omitted.",
-            examples=["Unsecured Protocols", "Windows CVEs"]
-        ),
         filters: dict[str, str | int | bool | list[str | int]] | None = Field(                
             default=None,
-            description="Dictionary of additional search filters. Call `get_insights_schema` tool for allowed filter keys",
-            examples=[{"insight_status__exact": 0, "criticality__exact": [1, 2]}]
+            description="Dictionary of search filters. Call `get_insights_schema` for valid filter keys and `get_common_schema` for exact insight names and asset type IDs.",
+            examples=[{"insight_name__exact": "Unsecured Protocols", "criticality__exact": [1, 2]}]
         ),
         start_time: str | None = Field(
             default=None,
@@ -120,8 +119,7 @@ class InsightsModule(BaseModule):
         """Retrieve aggregated network insights, risky assets, and vulnerability summaries.
 
         Use this tool to discover high-level security warnings and operational 
-        insights detected by CTD. Call the `get_insights_schema` tool before 
-        constructing filter expressions to ensure correct integer mappings.
+        insights detected by CTD.
         """
         try:
             # 1. Base Default Parameters
@@ -135,12 +133,6 @@ class InsightsModule(BaseModule):
                 'special_hint__exact': 0,
                 'insight_status__exact': 0,
             }
-
-            if exact_insight is not None:
-                if isinstance(exact_insight, list):
-                    params['insights_insight_name__exact'] = ",;$".join(str(v).strip() for v in exact_insight)
-                else:
-                    params['insights_insight_name__exact'] = exact_insight
 
             # 2. Apply Time Window
             if start_time:
@@ -192,7 +184,7 @@ class InsightsModule(BaseModule):
     def get_insight_details(
             self,
             insight_name: str = Field(
-                description="Specific insight name to filter by. Accepts a single string. Call `get_insights_schema` tool for allowed insight names.",
+                description="Specific insight name to filter by. Accepts a single string. Call `get_common_schema` tool for allowed insight names.",
                 examples=["Unsecured Protocols", "Windows CVEs"]
             )
         ) -> str:
@@ -200,7 +192,7 @@ class InsightsModule(BaseModule):
 
             Returns a Markdown table of affected assets and insight context. Each row 
             includes a `Filter Key` to be used with the `filter_assets_by_insight` 
-            tool for deeper investigation. Call `get_insights_schema` first for valid 
+            tool for deeper investigation. Call `get_common_schema` first for valid 
             insight names.
             """
                 
@@ -305,96 +297,94 @@ class InsightsModule(BaseModule):
             except Exception as e:
                 return f"Error fetching details for insight '{insight_name}': {str(e)}"
 
-    def filter_assets_by_insight(
-        self,
-        filter_key: str | None = Field(
-            default=None,
-            description="Use the exact string inside the backticks from `get_insight_details` to drill down into assets for a specific insight sub-category. Copy verbatim—do not alter, decode, or add spaces. Query strictly one key per message.",
-            examples=["Unsecured Protocols,;$1,;$,;$SMB,;$SMB+version+1+is..."]
-        ),
-        insight_name: str | None = Field(
-            default=None,
-            description="The exact insight name to get ALL assets associated with the insight. Call `get_insights_schema` for allowed names.",
-            examples=["Unsecured Protocols", "Windows CVEs"]
-        ),
-        limit: int = Field(
-            default=50,
-            ge=1,
-            le=500,
-            description="Maximum number of assets to return. Defaults to 50."
-        )
-    ) -> str:
-        """Retrieve assets information associated with a specific insight or insight sub-category.
 
-        Extracts foundational device information (IPs, MACs, OS, etc.) for affected assets. 
-        At least one parameter is strictly required: a `filter_key` (to drill down into a 
-        specific sub-category or single row returned by `get_insight_details`) or an 
-        `insight_name` (to broadly retrieve all assets tied to the entire insight category). 
-        Do not attempt to query multiple filter_keys at once; process them sequentially 
-        or request user preference.
-        """
+    def filter_assets_by_insight_key(
+            self,
+            filter_key: str = Field(
+                description="Use the exact string inside the backticks from `get_insight_details` to drill down into assets for a specific insight sub-category. Copy verbatim—do not alter, decode, or add spaces. Query strictly one key per message.",
+                examples=["Unsecured Protocols,;$1,;$,;$SMB,;$SMB+version+1+is..."]
+            ),
+            fields: list[str] = Field(
+                default=["id", "name", "ipv4", "vendor", "asset_type"],
+                description="List of requested asset fields. Call the `get_common_schema` tool for available fields. Defaults to a standard set of identity and network fields if omitted.",
+                examples=[["id", "hostname", "ipv4", "os", "risk_level"]]
+            ),
+            limit: int | None = Field(
+                default=None,
+                ge=1,
+                le=500,
+                description="Maximum number of assets to return. If omitted, all matching assets are retrieved via auto-pagination."
+            )
+        ) -> str:
+            """Retrieve assets associated with a specific insight sub-category using a row key.
 
-        if not filter_key and not insight_name:
-            return "Error: You must provide at least one parameter (either 'filter_key' or 'insight_name')."
+            Use this tool to drill down into a `filter_key` returned by `get_insight_details`. 
+            Do not use this tool for broad searches by insight name. Query one key at a time.
+            """
 
-        try:
-            # Base default parameters for the assets endpoint
-            params: dict[str, Any] = {
-                'special_hint__exact': 0,  
-                'valid__exact': True,      
-                'ghost__exact': False,     
-                'approved__exact': True,
-                # Request a condensed set of highly relevant fields to save tokens
-                'fields': "id,;$name,;$ipv4,;$vendor,;$model,;$asset_type,;$risk_level"
-            }
+            if not filter_key:
+                return "Error: 'filter_key' is strictly required."
 
-            # Apply the appropriate filter
-            if filter_key:
-                params['insight_row_key__exact'] = filter_key.strip()
-            elif insight_name:
-                params['insight_name__exact'] = insight_name.strip()
+            try:
+                # Input Validation for fields
+                clean_fields = [str(f).strip() for f in fields if str(f).strip()]
+                if not clean_fields:
+                    clean_fields = ["id", "name", "ipv4", "mac", "asset_type"] # Default fallback
 
-            all_objects = []
-            current_page = 1
-            per_page = min(limit, 100)
+                # Base default parameters for the assets endpoint
+                params: dict[str, Any] = {
+                    'special_hint__exact': 0,  
+                    'valid__exact': True,      
+                    'ghost__exact': False,     
+                    'approved__exact': True,
+                    'fields': ",;$".join(clean_fields),
+                    'insight_row_key__exact': filter_key.strip()
+                }
 
-            while True:
-                params['page'] = current_page
-                params['per_page'] = per_page
-
-                # Fetch from V1 Assets endpoint
-                response_data = self.client.request("GET", "/ranger/assets", params=params)
+                all_objects = []
+                current_page = 1
                 
-                if not isinstance(response_data, dict):
-                    break
+                # Chunking matching search_assets behavior
+                per_page = min(limit, 500) if limit is not None else 500
 
-                objects = response_data.get('objects', [])
-                if not objects:
-                    break
+                while True:
+                    params['page'] = current_page
+                    params['per_page'] = per_page
 
-                all_objects.extend(objects)
-
-                # Stop Conditions
-                if len(all_objects) >= limit:
-                    all_objects = all_objects[:limit]
-                    break
-                if len(objects) < per_page:
-                    break
+                    # Fetch from V1 Assets endpoint
+                    response_data = self.client.request("GET", "/ranger/assets", params=params)
                     
-                current_page += 1
+                    if not isinstance(response_data, dict):
+                        break
 
-            if not all_objects:
-                identifier = filter_key if filter_key else insight_name
-                return f"No assets found matching the insight criteria for: '{identifier}'."
+                    objects = response_data.get('objects', [])
+                    if not objects:
+                        break
 
-            # Output Token Optimization
-            optimized_objects = []
-            for obj in all_objects:
-                # Strip out null, empty string, or empty list values
-                cleaned_obj = {k: v for k, v in obj.items() if v not in (None, "", [], {})}
-                optimized_objects.append(cleaned_obj)
+                    all_objects.extend(objects)
 
-            return json.dumps(optimized_objects, separators=(',', ':'))
+                    # Stop Conditions
+                    if limit is not None and len(all_objects) >= limit:
+                        all_objects = all_objects[:limit] # Truncate to exact requested limit
+                        break
+                    
+                    if len(objects) < per_page:
+                        break
+                        
+                    current_page += 1
 
-        except Exception as e:
-            return f"Error filtering assets by insight: {str(e)}"
+                if not all_objects:
+                    return f"No assets found matching the filter key: '{filter_key}'."
+
+                # Output Token Optimization
+                optimized_objects = []
+                for obj in all_objects:
+                    # Strip out null, empty string, or empty list values
+                    cleaned_obj = {k: v for k, v in obj.items() if v not in (None, "", [], {})}
+                    optimized_objects.append(cleaned_obj)
+
+                return json.dumps(optimized_objects, separators=(',', ':'))
+
+            except Exception as e:
+                return f"Error filtering assets by insight key: {str(e)}"
+      
