@@ -83,7 +83,7 @@ class InsightsModule(BaseModule):
             name="ctd_insights_schema",
             description="Contains the master guide, allowed filters, and enums for the `search_insights` tools",
             text=INSIGHTS_SCHEMA_DOCS, 
-            mimeType="text/markdown"
+            mime_type="text/markdown"
         )
         
         self._add_resource(server, resource)
@@ -159,7 +159,7 @@ class InsightsModule(BaseModule):
                 optimized_objects.append(cleaned_obj)
 
             # Clean JSON serialization
-            return json.dumps(optimized_objects, separators=(',', ':'))
+            return self._format_to_markdown(optimized_objects)
 
         except Exception as e:
             return f"Error searching insights: {str(e)}"
@@ -367,7 +367,7 @@ class InsightsModule(BaseModule):
                     cleaned_obj = {k: v for k, v in obj.items() if v not in (None, "", [], {})}
                     optimized_objects.append(cleaned_obj)
 
-                return json.dumps(optimized_objects, separators=(',', ':'))
+                return self._format_to_markdown(optimized_objects)
 
             except Exception as e:
                 return f"Error filtering assets by insight key: {str(e)}"

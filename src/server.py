@@ -1,5 +1,6 @@
 import sys
 import json
+from pydantic import BaseModel, Field
 from mcp.server.fastmcp import FastMCP
 from src.client import CTDClient
 from src.modules.base import DYNAMIC_REGISTRY
@@ -13,6 +14,12 @@ mcp = FastMCP("Claroty CTD MCP Server")
 # ==========================================
 # Dynamic Meta-Tools
 # ==========================================
+
+# Define a strict schema for the meta-tool
+class ExecuteToolArgs(BaseModel):
+    tool_name: str = Field(description="The exact name of the tool to run (e.g., ctd_search_assets)")
+    arguments: dict = Field(description="A dictionary of arguments to pass to the tool, exactly matching its schema")
+
 def list_enabled_modules() -> str:
     """Returns a list of available system modules. Call this first to discover capabilities."""
     return json.dumps(list(DYNAMIC_REGISTRY.keys()))

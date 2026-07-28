@@ -67,7 +67,7 @@ class AssetsModule(BaseModule):
             name="ctd_assets_schema",
             description="Contains the master guide, allowed filters, and enums for the `search_assets` and `get_assets_details` tools.",
             text=ASSETS_SCHEMA_DOCS, 
-            mimeType="text/markdown"
+            mime_type="text/markdown"
         )
         
         self._add_resource(server, resource)
@@ -176,7 +176,7 @@ class AssetsModule(BaseModule):
                     optimized_objects.append(cleaned_obj)
 
                 # Clean JSON serialization, remove all unnecessary spaces and newlines
-                return json.dumps(optimized_objects, separators=(',', ':'))
+                return self._format_to_markdown(optimized_objects)
 
             except Exception as e:
                 return f"Error searching assets: {str(e)}"
@@ -233,7 +233,7 @@ class AssetsModule(BaseModule):
             cleaned_obj = {k: v for k, v in response_data.items() if v not in (None, "", [], {})}
 
             # Clean JSON serialization
-            return json.dumps(cleaned_obj, separators=(',', ':'))
+            return self._format_to_markdown(cleaned_obj)
 
         except Exception as e:
             return f"Error fetching details for asset {final_resource_id if 'final_resource_id' in locals() else 'Unknown'}: {str(e)}"
