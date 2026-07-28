@@ -104,16 +104,6 @@ class InsightsModule(BaseModule):
             default=None,
             description="Dictionary of search filters. Call `get_insights_schema` for valid filter keys and `get_common_schema` for exact insight names and asset type IDs.",
             examples=[{"insight_name__exact": "Unsecured Protocols", "criticality__exact": [1, 2]}]
-        ),
-        start_time: str | None = Field(
-            default=None,
-            description="Optional start time for the search window, formatted as a UTC ISO 8601 string.",
-            examples=["2026-07-09T00:00:00.000Z"]
-        ),
-        end_time: str | None = Field(
-            default=None,
-            description="Optional end time for the search window, formatted as a UTC ISO 8601 string.",
-            examples=["2026-07-16T23:59:59.000Z"]
         )
     ) -> str:
         """Retrieve aggregated network insights, risky assets, and vulnerability summaries.
@@ -133,13 +123,7 @@ class InsightsModule(BaseModule):
                 'special_hint__exact': 0,
                 'insight_status__exact': 0,
             }
-
-            # 2. Apply Time Window
-            if start_time:
-                params['insight_timestamp__gte'] = str(start_time).strip()
-            if end_time:
-                params['insight_timestamp__lte'] = str(end_time).strip()
-
+            
             # 3. Apply LLM Filters & Handle Arrays
             if filters:
                 for key, value in filters.items():
