@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any, Optional
 from pydantic import Field, AnyUrl
 import urllib.parse
@@ -83,7 +84,7 @@ class InsightsModule(BaseModule):
             name="ctd_insights_schema",
             description="Contains the master guide, allowed filters, and enums for the `search_insights` tools",
             text=INSIGHTS_SCHEMA_DOCS, 
-            mimeType="text/markdown"
+            mime_type="text/markdown"
         )
         
         self._add_resource(server, resource)
@@ -151,15 +152,27 @@ class InsightsModule(BaseModule):
             optimized_objects = []
 
             for obj in objects:
-                # Strip out UI-specific keys and empty values
-                cleaned_obj = {
-                    k: v for k, v in obj.items() 
-                    if k not in keys_to_drop and v not in (None, "", [], {})
-                }
+                cleaned_obj = {}
+                for k, v in obj.items():
+                    # Strip out UI-specific keys and empty values
+                    if k in keys_to_drop or v in (None, "", [], {}):
+                        continue
+                    
+                    # Clean Claroty's proprietary UI syntax and HTML tags from strings
+                    if isinstance(v, str):
+                        # Fix Claroty Links: [[14 assets$$/...]] -> 14 assets
+                        v = re.sub(r'\[\[(.*?)\$\$.*?\]\]', r'\1', v)
+                        # Strip all HTML tags (<br>, <strong>, etc.)
+                        v = re.sub(r'<[^>]+>', ' ', v)
+                        # Clean up any extra spacing left behind
+                        v = re.sub(r'\s+', ' ', v).strip()
+                        
+                    cleaned_obj[k] = v
+                    
                 optimized_objects.append(cleaned_obj)
 
-            # Clean JSON serialization
-            return json.dumps(optimized_objects, separators=(',', ':'))
+            # 5. Format to clean Markdown Table
+            return self._format_to_markdown(optimized_objects)
 
         except Exception as e:
             return f"Error searching insights: {str(e)}"
@@ -367,7 +380,7 @@ class InsightsModule(BaseModule):
                     cleaned_obj = {k: v for k, v in obj.items() if v not in (None, "", [], {})}
                     optimized_objects.append(cleaned_obj)
 
-                return json.dumps(optimized_objects, separators=(',', ':'))
+                return self._format_to_markdown(optimized_objects)
 
             except Exception as e:
                 return f"Error filtering assets by insight key: {str(e)}"
