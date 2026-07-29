@@ -93,7 +93,7 @@ class AssetsModule(BaseModule):
             fields: list[str] = Field(
                 default=["id", "name", "ipv4", "ipv6", "mac", "vendor", "model", "firmware", "asset_type", "risk_level"],
                 #description="List of requested asset fields. Consult resource://ctd/assets-schema for available fields. Defaults to a standard set of identity and network fields if omitted.",
-                description="List of requested asset fields. Call the `get_assets_schema` tool for available fields. Defaults to a standard set of identity and network fields if omitted.",
+                description="List of requested asset fields. Call the `get_common_schema` tool for available fields. Defaults to a standard set of identity and network fields if omitted.",
                 examples=[["id", "hostname", "ipv4", "vulnerabilities"]],
             ),
             limit: int | None = Field(
@@ -108,7 +108,7 @@ class AssetsModule(BaseModule):
             Use this tool to discover assets based on identity, location, risk score, 
             or hardware classification. Call the `get_assets_schema` tool before 
             constructing filter expressions to ensure correct data types and integer 
-            enum values.
+            enum values. Call `get_common_schema` tool for specific return fields.
             """
             try:
                 # Input Validation 
@@ -190,14 +190,14 @@ class AssetsModule(BaseModule):
         fields: list[str] = Field(
             default=["id", "name", "ipv4", "ipv6", "mac", "vendor", "model", "firmware", "asset_type", "risk_level"],
             #description="List of requested asset fields. Consult resource://ctd/assets-schema for available fields. Defaults to standard identity and network fields if omitted.",
-            description="List of requested asset fields. Call the `get_assets_schema` tool for available fields. Defaults to a standard set of identity and network fields if omitted.",
+            description="List of requested asset fields. Call the `get_common_schema` tool for available fields. Defaults to a standard set of identity and network fields if omitted.",
             examples=[["id", "hostname", "ipv4", "vulnerabilities"]]
         )
     ) -> str:
         """Retrieve the diagnostic profile of a specific network asset.
 
         Use this to query a single asset by its ID for its details. 
-        Call the `get_assets_schema` tool for available return fields. 
+        Call the `get_common_schema` tool for available return fields. 
         Returns the full asset record including device details, network 
         configuration, and risk level.
         """
