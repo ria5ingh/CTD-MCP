@@ -21,6 +21,7 @@ def main():
             AssetsModule(client=client),
             VulnerabilitiesModule(client=client), 
             InsightsModule(client=client)
+            #add new modules
         ]
 
         # loop through all active modules and connect tools into FastMCP
