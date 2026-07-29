@@ -78,7 +78,7 @@ class AssetsModule(BaseModule):
         """Retrieves the complete Claroty CTD Assets Search Schema, Filter Keys, and Guide.
         
         Call this tool BEFORE executing search_assets to look up 
-        allowed filter keys, required data types, integer enum mappings, or return fields.
+        allowed filter keys, required data types, or integer enum mappings.
         """
         return ASSETS_SCHEMA_DOCS
 

@@ -19,7 +19,7 @@ def main():
         # APPEND TO LIST WITH NEW MODULES AS THEY ARE CREATED!!!
         modules = [
             AssetsModule(client=client),
-            #VulnerabilitiesModule(client=client), 
+            VulnerabilitiesModule(client=client), 
             InsightsModule(client=client)
         ]
 
