@@ -5,7 +5,7 @@ ASSETS_SCHEMA_URI = "resource://ctd/assets-schema"
 ASSETS_SCHEMA_DOCS = """# CTD Assets Search Schema and Guide
 
 This document provides the specific filters for the `search_assets` tool. 
-**IMPORTANT ROUTING:** For Allowed Return Fields, Asset Type IDs, and Insight Names, you MUST call the `get_common_schema` tool.
+**IMPORTANT ROUTING:** For Allowed Return Fields, Asset Type IDs, and Insight Names, call the `get_common_schema` tool.
 
 ## 1. Default Parameters
 Unless otherwise specified by the user, the tool automatically applies these default search filters. Do not pass these unless overriding default behavior:
