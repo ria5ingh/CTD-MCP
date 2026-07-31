@@ -2,8 +2,9 @@ import sys
 import json
 from pydantic import BaseModel, Field
 from mcp.server.fastmcp import FastMCP
+
 from src.client import CTDClient
-from src.modules.base import DYNAMIC_REGISTRY
+from src.modules.base import DYNAMIC_REGISTRY, USE_DYNAMIC_MODE
 from src.modules.assets import AssetsModule
 from src.modules.insights import InsightsModule
 from src.modules.vulnerabilities import VulnerabilitiesModule
@@ -13,10 +14,9 @@ from src.modules.vulnerabilities import VulnerabilitiesModule
 mcp = FastMCP("Claroty CTD MCP Server")
 
 # ==========================================
-# Dynamic Meta-Tools
+# Dynamic Meta-Tools (Only registered if USE_DYNAMIC_MODE is True)
 # ==========================================
 
-# Define a strict schema for the meta-tool
 class ExecuteToolArgs(BaseModel):
     tool_name: str = Field(description="The exact name of the tool to run (e.g., ctd_search_assets)")
     arguments: dict = Field(description="A dictionary of arguments to pass to the tool, exactly matching its schema")
@@ -59,6 +59,9 @@ def execute_tool(tool_name: str, arguments: dict) -> str:
     
     return f"Error: Tool '{tool_name}' not found. Call ctd_search_tools to find available tools."
 
+# ==========================================
+# Main Server Execution
+# ==========================================
 
 def main():
     try:
@@ -66,6 +69,7 @@ def main():
         client = CTDClient()
 
         # Instantiate Modules
+        # APPEND TO LIST WITH NEW MODULES AS THEY ARE CREATED!!!
         modules = [
             AssetsModule(client=client),
             InsightsModule(client=client),
@@ -73,17 +77,23 @@ def main():
         ]
 
         # Register tools and resources for all modules
+        # In Normal Mode: This directly adds tools to FastMCP.
+        # In Dynamic Mode: This saves tools to the DYNAMIC_REGISTRY and ignores FastMCP.
         for module in modules:
             module.register_tools(mcp)
             module.register_resources(mcp)
 
-        # Register ONLY the 3 dynamic meta-tools with FastMCP/Open WebUI
-        mcp.add_tool(list_enabled_modules, name="ctd_list_enabled_modules")
-        mcp.add_tool(search_tools, name="ctd_search_tools")
-        mcp.add_tool(execute_tool, name="ctd_execute_tool")
+        # If Dynamic Mode is enabled, expose ONLY the meta-tools to the LLM
+        if USE_DYNAMIC_MODE:
+            mcp.add_tool(list_enabled_modules, name="ctd_list_enabled_modules")
+            mcp.add_tool(search_tools, name="ctd_search_tools")
+            mcp.add_tool(execute_tool, name="ctd_execute_tool")
 
-        # Start FastMCP server
+        # FastMCP defaults to standard input/output (stdio) transport, (required for CLI tools)
         mcp.run()
+
+        # Start server via HTTP for Web UIs, for later integration with OpenWeb UI
+        # mcp.run(transport='sse')
         
     except ValueError as e:
         sys.stderr.write(f"Configuration Error: {e}\n")
