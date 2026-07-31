@@ -4,18 +4,24 @@ from pydantic import BaseModel, Field
 from mcp.server.fastmcp import FastMCP
 
 from src.client import CTDClient
-from src.modules.base import DYNAMIC_REGISTRY, USE_DYNAMIC_MODE
+from src.modules.base import DYNAMIC_REGISTRY, USE_DYNAMIC_MODE, config_data
 from src.modules.assets import AssetsModule
 from src.modules.insights import InsightsModule
 from src.modules.vulnerabilities import VulnerabilitiesModule
-# Add future modules here as they are created
 
-# Initialize the FastMCP Server
 mcp = FastMCP("Claroty CTD MCP Server")
 
 # ==========================================
-# Dynamic Meta-Tools (Only registered if USE_DYNAMIC_MODE is True)
+# Dynamic Meta-Tools
 # ==========================================
+
+# Map config key names to their class references
+# append as list grows, append in config as well
+AVAILABLE_MODULES = {
+    "assets": AssetsModule,
+    "insights": InsightsModule,
+    "vulnerabilities": VulnerabilitiesModule,
+}
 
 class ExecuteToolArgs(BaseModel):
     tool_name: str = Field(description="The exact name of the tool to run (e.g., ctd_search_assets)")
@@ -46,11 +52,9 @@ def execute_tool(tool_name: str, arguments: dict) -> str:
         if tool_name in tools:
             tool_data = tools[tool_name]
             try:
-                # Validate LLM arguments against the dynamically generated model
                 validated_args = tool_data["schema_model"].model_validate(arguments)
                 result = tool_data["func"](**validated_args.model_dump())
                 
-                # Ensure output is stringified if the tool returns a dict/object
                 if isinstance(result, (dict, list)):
                     return json.dumps(result)
                 return str(result)
@@ -65,35 +69,29 @@ def execute_tool(tool_name: str, arguments: dict) -> str:
 
 def main():
     try:
-        # Initialize the API Client
         client = CTDClient()
+        
+        # Read ENABLED_MODULES block from config
+        enabled_modules = config_data.get("ENABLED_MODULES", {})
 
-        # Instantiate Modules
-        # APPEND TO LIST WITH NEW MODULES AS THEY ARE CREATED!!!
+        # Dynamically instantiate modules based on config (defaults to True if key missing)
         modules = [
-            AssetsModule(client=client),
-            InsightsModule(client=client),
-            VulnerabilitiesModule(client=client),
+            module_class(client=client)
+            for name, module_class in AVAILABLE_MODULES.items()
+            if enabled_modules.get(name, True)
         ]
 
-        # Register tools and resources for all modules
-        # In Normal Mode: This directly adds tools to FastMCP.
-        # In Dynamic Mode: This saves tools to the DYNAMIC_REGISTRY and ignores FastMCP.
+        # Register tools and resources for all enabled modules
         for module in modules:
             module.register_tools(mcp)
             module.register_resources(mcp)
 
-        # If Dynamic Mode is enabled, expose ONLY the meta-tools to the LLM
         if USE_DYNAMIC_MODE:
             mcp.add_tool(list_enabled_modules, name="ctd_list_enabled_modules")
             mcp.add_tool(search_tools, name="ctd_search_tools")
             mcp.add_tool(execute_tool, name="ctd_execute_tool")
 
-        # FastMCP defaults to standard input/output (stdio) transport, (required for CLI tools)
         mcp.run()
-
-        # Start server via HTTP for Web UIs, for later integration with OpenWeb UI
-        # mcp.run(transport='sse')
         
     except ValueError as e:
         sys.stderr.write(f"Configuration Error: {e}\n")

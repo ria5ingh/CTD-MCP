@@ -1,66 +1,68 @@
-# src/modules/base.py
-import sys
 import os
-import inspect
+import sys
 import json
+import inspect
 from typing import Callable, Any
-from pydantic import create_model, Field
-from dotenv import load_dotenv
+from pydantic import create_model
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import Resource, ToolAnnotations
 from src.client import CTDClient
 from src.resources.common import COMMON_SCHEMA_URI, COMMON_SCHEMA_DOCS
 
-# ==========================================
-# MODE TOGGLE
-# Checks for the "--dynamic" CLI flag (if running in mcpo)
-# ==========================================
+# 1. Check for CLI flag (mcpo / Open WebUI) --> passing"--dynamic" will override the config and set it to TRUE no matter what the setting is.
+cli_flag = False
+if "--dynamic" in sys.argv:
+    cli_flag = True
+    sys.argv.remove("--dynamic")
 
+# 2. Silently Check for Config File (ollmcp)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+config_path = os.path.abspath(os.path.join(current_dir, "../../mcp_config.json"))
 
-load_dotenv()
-USE_DYNAMIC_MODE = (
-    "--dynamic" in sys.argv or 
-    os.getenv("USE_DYNAMIC_MODE", "False").lower() in ("true")
-)
+config_flag = False
+config_data = {}
 
-# UNCOMMENT TO RUN WITH OLLMCP
-# USE_DYNAMIC_MODE = True
+if os.path.exists(config_path):
+    try:
+        with open(config_path, "r") as f:
+            config_data = json.load(f)
+            # Support both flat and nested JSON structures
+            if "SERVER_MODE" in config_data:
+                config_flag = bool(config_data["SERVER_MODE"].get("USE_DYNAMIC_MODE", False))
+            else:
+                config_flag = bool(config_data.get("USE_DYNAMIC_MODE", False))
+    except Exception:
+        pass  # SILENT FAIL: Print statements corrupt MCP stdout
+
+USE_DYNAMIC_MODE = cli_flag or config_flag
 
 # Global Registry for Dynamic Mode
-# Format: { "module_name": { "tool_name": { "func": Callable, "schema_model": BaseModel, "schema_json": dict, "description": str } } }
 DYNAMIC_REGISTRY: dict[str, dict[str, dict[str, Any]]] = {}
 
-# Default Annotations for Read-Only Tools (Normal Mode)
+# Default Annotations for Read-Only Tools
 READ_ONLY_ANNOTATIONS = ToolAnnotations(
     readOnlyHint=True,
     destructiveHint=False,
     idempotentHint=True,
-    openWorldHint=False, #CTD is closed
+    openWorldHint=False, 
 )
 
 class BaseModule:
-    # Class-level flags shared across all module instances
     _common_tool_registered = False
     _common_resource_registered = False
 
     def __init__(self, client: CTDClient) -> None:
-        """Initializes the base module with a shared Claroty CTD API client."""
         self.client = client
-        self.tools: list[str] = []       # Tracks registered tool names
-        self.resources: list[str] = []   # Tracks registered resource URIs
+        self.tools: list[str] = []       
+        self.resources: list[str] = []   
         
-        # Auto-derive module bucket name for Dynamic Mode (e.g. "AssetsModule" -> "assets")
         if USE_DYNAMIC_MODE:
             self.module_name = self.__class__.__name__.replace("Module", "").lower()
             if self.module_name not in DYNAMIC_REGISTRY:
                 DYNAMIC_REGISTRY[self.module_name] = {}
 
     def register_tools(self, server: FastMCP) -> None:
-        """
-        Registers shared base tools. 
-        Child modules MUST call super().register_tools(server) when adding more tools.
-        """
         if not BaseModule._common_tool_registered:
             self._add_tool(
                 server=server,
@@ -71,10 +73,6 @@ class BaseModule:
             BaseModule._common_tool_registered = True
 
     def register_resources(self, server: FastMCP) -> None:
-        """
-        Registers shared base resources.
-        Child modules should call super().register_resources(server) when overriding.
-        """
         if not BaseModule._common_resource_registered:
             resource = Resource(
                 uri=COMMON_SCHEMA_URI,
@@ -93,15 +91,9 @@ class BaseModule:
         name: str,
         annotations: ToolAnnotations | None = None
     ) -> None:
-        """
-        Registers a tool. Behavior changes based on USE_DYNAMIC_MODE flag.
-        - Dynamic: Intercepts registration, extracts metadata, saves to registry.
-        - Normal: Directly registers to the MCP server.
-        """
         prefixed_name = f"ctd_{name}"
 
         if USE_DYNAMIC_MODE:
-            # --- DYNAMIC MODE REGISTRATION ---
             sig = inspect.signature(method)
             fields = {}
             
@@ -135,7 +127,6 @@ class BaseModule:
             self.tools.append(prefixed_name)
 
         else:
-            # --- NORMAL MODE REGISTRATION ---
             server.add_tool(
                 method,
                 name=prefixed_name,
@@ -145,20 +136,14 @@ class BaseModule:
             self.tools.append(prefixed_name)
 
     def _add_resource(self, server: FastMCP, resource: Resource) -> None:
-        """Programmatically registers an MCP Resource object with the server."""
         server.add_resource(resource=resource)
         self.resources.append(str(resource.uri))
 
     def get_common_schema(self) -> str:
-        """Retrieve the shared schema containing common info across multiple tools (asset type IDs, return fields, and insight names)."""
         return COMMON_SCHEMA_DOCS
 
     @staticmethod
     def _format_to_markdown(data: Any) -> str:
-        """
-        Dynamically converts JSON-like data (dicts or lists of dicts) into clean Markdown.
-        Agnostic to specific keys. Nested objects are safely stringified.
-        """
         if not data:
             return "No data returned."
 
