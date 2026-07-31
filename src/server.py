@@ -6,6 +6,7 @@ from src.client import CTDClient
 from src.modules.base import DYNAMIC_REGISTRY
 from src.modules.assets import AssetsModule
 from src.modules.insights import InsightsModule
+from src.modules.vulnerabilities import VulnerabilitiesModule
 # Add future modules here as they are created
 
 # Initialize the FastMCP Server
@@ -67,8 +68,8 @@ def main():
         # Instantiate Modules
         modules = [
             AssetsModule(client=client),
-            InsightsModule(client=client)
-            # VulnerabilitiesModule(client=client),
+            InsightsModule(client=client),
+            VulnerabilitiesModule(client=client),
         ]
 
         # Register tools and resources for all modules
