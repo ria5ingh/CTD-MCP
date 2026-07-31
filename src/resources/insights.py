@@ -5,7 +5,7 @@ INSIGHTS_SCHEMA_URI = "resource://ctd/insights-schema"
 INSIGHTS_SCHEMA_DOCS = """# CTD Insights Search Schema and Guide
 
 This document provides the allowed fields and filters for the `search_insights` tool.
-**IMPORTANT ROUTING:** For Asset Type IDs and Exact Insight Names, you MUST call the `get_common_schema` tool.
+**IMPORTANT ROUTING:** For Asset Type IDs and Exact Insight Names, call the `get_common_schema` tool.
 
 ## 1. Default Parameters 
 Do not pass these unless overriding default behavior:
