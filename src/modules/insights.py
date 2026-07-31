@@ -102,7 +102,7 @@ class InsightsModule(BaseModule):
         self,
         filters: dict[str, str | int | bool | list[str | int]] | None = Field(                
             default=None,
-            description="Dictionary of search filters. Call `get_insights_schema` for valid filter keys and `get_common_schema` for exact insight names and asset type IDs.",
+            description="Dictionary of search filters. Call `get_insights_schema` for valid filter keys. Call `get_common_schema` for exact insight names and asset type IDs.",
             examples=[{"insight_name__exact": "Unsecured Protocols", "criticality__exact": [1, 2]}]
         )
     ) -> str:
