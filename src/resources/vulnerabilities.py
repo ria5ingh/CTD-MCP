@@ -26,7 +26,6 @@ Use these keys in the `filters` dictionary.
 | `status__exact` | Integer | Vulnerability status. **Enums:** `0` (Open), `1` (Fixed), `2` (Irrelevant), `3` (Accept), `4` (Manually Fixed). | `0` |
 | `epss_score__exact` | String | EPSS score category. **Enums:** `"low"`, `"medium"`, `"high"`, `"critical"`. | `"high"` |
 | `cvss_v3_score__exact`| String | CVSS v3 score category. **Enums:** `"low"`, `"medium"`, `"high"`, `"critical"`. | `"critical"` |
-| `vulnerability_type__exact` | Integer | Type ID. **Enums:** `0` (Clinical), `1` (IoT), `2` (Platform), `3` (Application), `4` (OT). | `2` |
 | `q__icontains` | String | Open text search. Matches against vulnerability names, descriptions, or general text (e.g., "use after free", "buffer overflow"). | `"use after free"` |
 
 
@@ -42,7 +41,6 @@ Pass these exact strings in the `fields` array parameter to specify what columns
 * `cvss_v2_score` — CVSS v2 score object
 * `epss_score` — EPSS score object (value and probability label)
 * `actively_exploited` — Boolean flag indicating known threat activity
-* `vulnerability_type` — Integer classification enum
 * `access_vector` — Exploitation path required (e.g., "Network", "Local")
 * `release_date` — Date published to NVD
 * `last_modified` — Date updated in NVD
