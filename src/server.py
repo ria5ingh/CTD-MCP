@@ -8,6 +8,7 @@ from src.modules.base import DYNAMIC_REGISTRY, USE_DYNAMIC_MODE, config_data
 from src.modules.assets import AssetsModule
 from src.modules.insights import InsightsModule
 from src.modules.vulnerabilities import VulnerabilitiesModule
+#from src.modules.modulename import NameModule
 
 mcp = FastMCP("Claroty CTD MCP Server")
 
@@ -21,6 +22,7 @@ AVAILABLE_MODULES = {
     "assets": AssetsModule,
     "insights": InsightsModule,
     "vulnerabilities": VulnerabilitiesModule,
+    #"name" : NameModule,
 }
 
 class ExecuteToolArgs(BaseModel):
