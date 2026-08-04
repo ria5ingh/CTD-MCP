@@ -36,7 +36,7 @@ Use these keys in the `filters` dictionary.
 | `actively_exploited__exact` | Boolean | Exploited in the wild flag. | `true` |
 | `status__exact` | Integer | Vulnerability status. **Enums:** `0` (Open), `1` (Fixed), `2` (Irrelevant), `3` (Accept), `4` (Manually Fixed). | `0` |
 | `epss_score__exact` | String | EPSS score category. **Enums:** `"low"`, `"medium"`, `"high"`, `"critical"`. | `"high"` |
-| `cvss_v3_score__exact`| String | CVSS v3 score category. **Enums:** `"low"`, `"medium"`, `"high"`, `"critical"`. | `"critical"` |
+| `cvss_severity`| String | CVSS v3 severity level. **Enums:** `"low"` (1.0-3.9), `"medium"` (4.0-6.9), `"high"` (7.0-8.9), `"critical"` (9.0-10.0). | `"critical"` |
 | `cve_id__exact` | String | **(`list_assets_per_cve` & `list_cves_per_asset` ONLY)** Exact standard CVE identifier. | `"CVE-2020-6088"` |
 | `asset_id__exact` | String | **(`list_assets_per_cve` & `list_cves_per_asset` ONLY)** Exact asset resource ID. | `"11-1"` |
 | `virtual_zone__exact` | String | **(`list_assets_per_cve` & `list_cves_per_asset` ONLY)** Exact virtual zone resource ID. | `"23-1"` |

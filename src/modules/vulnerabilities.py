@@ -106,13 +106,13 @@ class VulnerabilitiesModule(BaseModule):
         allowed filter keys, required data types, or integer enum mappings.
         """
         return VULNERABILITIES_SCHEMA_DOCS
-
+    
     def search_vulnerabilities(
         self,
         filters: dict[str, str | int | bool | list[str | int]] | None = Field(                
             default=None,
             description="Dictionary of search filters. Call `get_vulnerabilities_schema` for valid filter keys and enum mappings.",
-            examples=[{"q__icontains": "use after free", "cvss_v3_score__exact": ["high", "critical"]}],
+            examples=[{"q__icontains": "use after free", "cvss_severity": ["high", "critical"]}],
         ),
         sort_by: str = Field(
             default="-cvss_v3_score",
@@ -137,11 +137,7 @@ class VulnerabilitiesModule(BaseModule):
             description="Page number to fetch. Use this to paginate through results if the response indicates more pages are available.",
         ),
     ) -> str:
-        """Find confirmed vulnerabilities (CVEs) based on keyword search, severity, exploitability, or other criteria.
-        
-        Use this tool to list threats present in the environment. Call `get_vulnerabilities_schema` 
-        before constructing filter expressions.
-        """
+        """Find confirmed vulnerabilities (CVEs) based on keyword search, severity, exploitability, or other criteria."""
         try:
             current_page = page if page is not None else 1
             per_page = min(limit, 500) if limit is not None else 500
@@ -150,17 +146,18 @@ class VulnerabilitiesModule(BaseModule):
             params: dict[str, Any] = {
                 'site_id__exact': 1,
                 'ghost__exact': False,
-                'affected_assets__exact': 0, # 0 = True in Claroty Enum
-                'special_hint__exact': 0,    # 0 = Unicast
-                'relevance__exact': 1,      # 1 = Confirmed matches only
+                'affected_assets__exact': 0, 
+                'special_hint__exact': 0,    
+                'relevance__exact': 1,      
                 'sort': sort_by,
                 'page': current_page,
                 'per_page': per_page
             }
 
-            # Apply LLM filters
+            # Apply LLM filters with Bug Workaround
             if filters:
-                for key, value in filters.items():
+               self.cvss_grouping(filters)
+               for key, value in filters.items():
                     if isinstance(value, list):
                         params[key] = ",;$".join(str(v).strip() for v in value)
                     else:
@@ -178,66 +175,56 @@ class VulnerabilitiesModule(BaseModule):
             if not objects:
                 return f"No vulnerabilities found matching the specified criteria on page {current_page}."
 
-            # Format fixed fields into compact strings
-            compact_entries = []
+            # Format into a clean, vertical data table
+            md_lines = []
             for item in objects:
                 cve_id = item.get("cve_id", "N/A")
                 res_id = item.get("resource_id", "N/A")
                 
-                # Extract total_affected_assets
                 assets_count = item.get("assets_count", {})
                 affected_assets = (
                     assets_count.get("total_affected_assets_count", 0) 
                     if isinstance(assets_count, dict) else 0
                 )
 
-                # Extract cvss_v3_score
-                cvss = item.get("cvss_v3_score")
-                if isinstance(cvss, dict):
-                    val = cvss.get("value")
-                    lbl = cvss.get("label")
-                    cvss_str = f"{val} ({lbl})" if val and lbl else str(val or lbl or "N/A")
+                # Extract CVSS Score safely (prefer v3, fallback to v2)
+                cvss_v3 = item.get("cvss_v3_score")
+                cvss_v2 = item.get("cvss_v2_score")
+                
+                if isinstance(cvss_v3, dict) and cvss_v3.get("value"):
+                    cvss_str = f"v3: {cvss_v3.get('value')} ({cvss_v3.get('label', 'N/A')})"
+                elif isinstance(cvss_v2, dict) and cvss_v2.get("value"):
+                    cvss_str = f"v2: {cvss_v2.get('value')} ({cvss_v2.get('label', 'N/A')})"
+                elif isinstance(cvss_v3, (float, int)): 
+                    cvss_str = f"v3: {cvss_v3}"
                 else:
-                    cvss_str = str(cvss) if cvss is not None else "N/A"
+                    cvss_str = "N/A"
 
-                compact_entries.append(
-                    f"**{cve_id}** [ID: `{res_id}` | CVSS: {cvss_str} | Assets: {affected_assets}]"
-                )
+                md_lines.append(f"- **{cve_id}** (`{res_id}`): {cvss_str} | Assets: {affected_assets}")
 
-            # Pack multiple CVE entries per row (3 entries per row)
-            items_per_row = 3
-            table_rows = []
-            for i in range(0, len(compact_entries), items_per_row):
-                chunk = compact_entries[i:i + items_per_row]
-                # Pad empty cells if the final row has fewer than 3 items
-                while len(chunk) < items_per_row:
-                    chunk.append("")
-                table_rows.append({"Vulnerabilities (Col 1)": chunk[0], "Vulnerabilities (Col 2)": chunk[1], "Vulnerabilities (Col 3)": chunk[2]})
-
-            md_table = self._format_to_markdown(table_rows)
+            md_output = "\n".join(md_lines)
 
             # Metadata header with Pagination Intelligence
             metadata_header = [
                 f"**Page {current_page} Results:** Displaying {len(objects)} records (Total available: {total_records})"
             ]
 
-            # Check if there are more records beyond the current page scope
             if total_records > (current_page * per_page):
                 metadata_header.append(
                     f"**NOTICE:** More records are available. Call this tool again with `page={current_page + 1}` to fetch the next {per_page} records."
                 )
 
-            return "\n".join(metadata_header) + "\n\n" + md_table
+            return "\n".join(metadata_header) + "\n\n" + md_output
 
         except Exception as e:
             return f"Error searching vulnerabilities: {str(e)}"
-
+            
     def list_assets_per_vulnerabilities(
         self,
         filters: dict[str, str | int | bool | list[str | int]] | None = Field(
             default=None,
             description="Dictionary of search filters. Call `get_vulnerabilities_schema` for allowed search filter and enums.",
-            examples=[{"virtual_zone__exact": "106-1", "cvss_v3_score__exact": ["high", "critical"]}],
+            examples=[{"virtual_zone__exact": "106-1", "cvss_severity": ["high", "critical"]}],
         ),
         cve_id: str | None = Field(
             default=None,
@@ -286,6 +273,7 @@ class VulnerabilitiesModule(BaseModule):
 
             # Apply additional LLM filters
             if filters:
+                self.cvss_grouping(filters)
                 for key, value in filters.items():
                     if isinstance(value, list):
                         params[key] = ",;$".join(str(v).strip() for v in value)
@@ -357,7 +345,7 @@ class VulnerabilitiesModule(BaseModule):
         filters: dict[str, str | int | bool | list[str | int]] | None = Field(
             default=None,
             description="Dictionary of search filters. Call `get_vulnerabilities_schema` for allowed search filters and enums.",
-            examples=[{"virtual_zone__exact": "106-1", "cvss_v3_score__exact": ["high", "critical"]}],
+            examples=[{"virtual_zone__exact": "106-1", "cvss_severity": ["high", "critical"]}],
         ),
         asset_id: str | None = Field(
             default=None,
@@ -406,6 +394,7 @@ class VulnerabilitiesModule(BaseModule):
 
             # Apply additional LLM filters
             if filters:
+                self.cvss_grouping(filters)
                 for key, value in filters.items():
                     if isinstance(value, list):
                         params[key] = ",;$".join(str(v).strip() for v in value)
@@ -565,5 +554,26 @@ class VulnerabilitiesModule(BaseModule):
 
         except Exception as e:
             return f"Error fetching vulnerability details: {str(e)}"
-  
+
+    def cvss_grouping(self, filters: dict) -> None:
+        """Helper to translate categorical CVSS labels into numeric ranges"""
+        if not filters or 'cvss_severity' not in filters:
+            return
+            
+        val = filters.pop('cvss_severity')
+        val_list = [str(v).lower() for v in val] if isinstance(val, list) else [str(val).lower()]        
+        numeric_vals = []
+        
+        for v in val_list:
+            if v == 'critical':
+                numeric_vals.extend([f"{i/10:.1f}" for i in range(90, 101)])
+            elif v == 'high':
+                numeric_vals.extend([f"{i/10:.1f}" for i in range(70, 90)])
+            elif v == 'medium':
+                numeric_vals.extend([f"{i/10:.1f}" for i in range(40, 70)])
+            elif v == 'low':
+                numeric_vals.extend([f"{i/10:.1f}" for i in range(1, 40)])
+                
+        if numeric_vals:
+            filters['numeric_cvss_v3_score__exact'] = ",;$".join(numeric_vals)
         
