@@ -45,25 +45,19 @@ Use these keys in the `filters` dictionary.
 | `class_type__exact` | Integer | **(`search_vulnerabilities` ONLY)** Asset class. **Enums:** `0` (OT), `1` (IT), `2` (IoT). | `0` |
 
 ---
+
+## 3. Allowed Return Fields (`get_vulnerability_details` ONLY)
+When using `get_vulnerability_details`, you may pass a list of these exact strings in the `fields` array parameter. If omitted, the tool returns a standard summary.
+
+* `cve_id` — Standard CVE identifier string
+* `description` — Full text description of the vulnerability and its impact
+* `cvss_v3_score` — CVSS v3 score object (value and severity label)
+* `cvss_v2_score` — CVSS v2 score object
+* `epss_score` — EPSS score object (value and probability label)
+* `actively_exploited` — Boolean flag indicating known threat activity in the wild
+* `access_vector` — Exploitation path required (e.g., "Network", "Local")
+* `detection_date` — Date first detected in the CTD environment
+* `release_date` — Date published to NVD
+* `advisory_names` — List of vendor advisory IDs
+* `assets_count` — Formatted breakdown of Confirmed, Potentially Relevant, IT, IoT, and OT assets.
 """
-
-# ## 3. Allowed Return Fields (`search_vulnerabilities` ONLY)
-# *(Note: `list_assets_per_cve` and `list_cves_per_asset` do NOT accept custom return fields. They automatically format their output into a fixed Markdown table to map the relationship.)*
-
-# When using `search_vulnerabilities`, you may pass these exact strings in the `fields` array parameter to specify what columns to return:
-
-# * `resource_id` — Primary identifier (Required to call `get_vulnerability_details`)
-# * `cve_id` — Standard CVE identifier string
-# * `cve_link` — URL to NVD entry
-# * `cvss_v3_score` — CVSS v3 score object (value and severity label)
-# * `cvss_v2_score` — CVSS v2 score object
-# * `epss_score` — EPSS score object (value and probability label)
-# * `actively_exploited` — Boolean flag indicating known threat activity
-# * `access_vector` — Exploitation path required (e.g., "Network", "Local")
-# * `release_date` — Date published to NVD
-# * `last_modified` — Date updated in NVD
-# * `advisory_names` — List of vendor advisory IDs
-# * `assets_count` — Counts of affected assets by category
-
-# *(Note: The 'description' field is omitted by default to preserve LLM token context. Use `get_vulnerability_details` to read full descriptions).*
-# """
