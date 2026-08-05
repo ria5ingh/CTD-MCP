@@ -19,7 +19,7 @@ class NetworkModule(BaseModule):
     def get_subnets(self) -> str:
         """Retrieve subnets discovered by CTD and audit for RFC-1918 compliance."""
         try:
-            params = {"sort": "name", "page": "1", "per_page": "50", "with_assets__exact": "true", "site_id__exact": "1", "distinct": "false"}
+            params = {"sort": "name", "page": "1", "per_page": "50", "with_assets__exact": "true", "site_id__exact": "1", "distinct": "false",}
             type_map = {0: "Internal", 1: "External"}
             data = self.client.request("GET", "/ranger/subnets", params=params)
             objects = data.get("objects", [])
@@ -31,12 +31,13 @@ class NetworkModule(BaseModule):
             warnings = []
             
             for item in objects:
-                subnet_ip = item.get("name") or item.get("subnet") or "Unknown"
-                network = item.get("network_name") or item.get("network") or "N/A"
-                assets = item.get("num_assets") or item.get("assets_count") or 0
+                subnet_ip = item.get("name") or "Unknown"
+                network = item.get("network_name") or "N/A"
+                assets = item.get("assets_count") or 0
                 subnet_type = type_map.get(item.get("type"), "Unknown")
+                subnet_id = item.get("resource_id") or "N/A"
                 
-                output.append(f"* **{subnet_ip}** | Network: {network} | Type: {subnet_type} | Assets: {assets}")
+                output.append(f"* **{subnet_ip}** | Network: {network} | Type: {subnet_type} | Assets: {assets} | ID: {subnet_id}")
 
                 # RFC-1918 Compliance Check
                 try:
