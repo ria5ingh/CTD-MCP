@@ -33,24 +33,104 @@ class ExecuteToolArgs(BaseModel):
     tool_name: str = Field(description="The exact name of the tool to run (e.g., ctd_search_assets)")
     arguments: dict = Field(description="A dictionary of arguments to pass to the tool, exactly matching its schema")
 
+# def list_enabled_modules() -> str:
+#     """Returns a list of available system modules. Call this first to discover capabilities."""
+#     return json.dumps(list(DYNAMIC_REGISTRY.keys()))
+
 def list_enabled_modules() -> str:
-    """Returns a list of available system modules. Call this first to discover capabilities."""
-    return json.dumps(list(DYNAMIC_REGISTRY.keys()))
+    """Returns a list of available system modules and their descriptions. Call this first to discover capabilities."""
+    output_lines = ["### Available Modules\n"]
+    
+    for module_name in DYNAMIC_REGISTRY.keys():
+        # Retrieve the class reference from the available modules map
+        module_class = AVAILABLE_MODULES.get(module_name)
+        
+        # Extract and clean up the docstring
+        if module_class and module_class.__doc__:
+            # .split() and " ".join() removes all awkward indentation and newlines
+            description = " ".join(module_class.__doc__.strip().split())
+        else:
+            description = "No description provided."
+            
+        output_lines.append(f"- **{module_name}**: {description}")
+        
+    return "\n".join(output_lines)
+
+
+# def search_tools(module_name: str) -> str:
+#     """Returns the names, descriptions, and required parameter schemas for all tools inside a specific module."""
+#     if module_name not in DYNAMIC_REGISTRY:
+#         return f"Error: Module '{module_name}' not found. Available modules: {list(DYNAMIC_REGISTRY.keys())}"
+    
+#     tools_info = []
+#     for name, data in DYNAMIC_REGISTRY[module_name].items():
+#         tools_info.append({
+#             "name": name,
+#             "description": data["description"],
+#             "annotations": data.get("annotations", {}),
+#             "schema": data["schema_json"]
+#         })
+#     return json.dumps(tools_info, indent=2)
 
 def search_tools(module_name: str) -> str:
     """Returns the names, descriptions, and required parameter schemas for all tools inside a specific module."""
     if module_name not in DYNAMIC_REGISTRY:
         return f"Error: Module '{module_name}' not found. Available modules: {list(DYNAMIC_REGISTRY.keys())}"
     
-    tools_info = []
+    output_lines = [f"### Tools available in `{module_name}` module:",
+        "> **CRITICAL:** These tools cannot be called directly.",
+        "> Execution requires using the `ctd_execute_tool` tool, passing the target tool's",
+        "> name as `tool_name` and its parameters as the `arguments` dictionary.",
+        "\n---"
+    ]
+    
     for name, data in DYNAMIC_REGISTRY[module_name].items():
-        tools_info.append({
-            "name": name,
-            "description": data["description"],
-            "annotations": data.get("annotations", {}),
-            "schema": data["schema_json"]
-        })
-    return json.dumps(tools_info, indent=2)
+        desc = data.get("description", "No description provided.").strip()
+        schema = data.get("schema_json", {})
+        properties = schema.get("properties", {})
+        required_fields = schema.get("required", [])
+        
+        # Build function signature and parameter details
+        args_list = []
+        param_details = []
+        
+        for prop_name, prop_info in properties.items():
+            is_required = prop_name in required_fields
+            
+            # Extract basic type and handle Pydantic's anyOf nullable bloat
+            prop_type = prop_info.get("type", "Any")
+            if "anyOf" in prop_info:
+                types = [t.get("type") for t in prop_info["anyOf"] if t.get("type") and t.get("type") != "null"]
+                if types:
+                    prop_type = types[0]
+            
+            # Map JSON types to Python types for better LLM readability
+            if prop_type == "object": prop_type = "dict"
+            elif prop_type == "array": prop_type = "list"
+            elif prop_type == "integer": prop_type = "int"
+            elif prop_type == "string": prop_type = "str"
+            elif prop_type == "boolean": prop_type = "bool"
+
+            prop_desc = prop_info.get("description", "No description.")
+            
+            # Signature formatting
+            req_str = "" if is_required else " = None"
+            args_list.append(f"{prop_name}: {prop_type}{req_str}")
+            
+            # Detailed bullet point
+            req_label = "Required" if is_required else "Optional"
+            param_details.append(f"- `{prop_name}` ({prop_type}, {req_label}): {prop_desc}")
+
+        # Assemble the formatted block for this tool
+        sig = f"**`{name}({', '.join(args_list)})`**"
+        output_lines.append(sig)
+        output_lines.append(desc)
+        if param_details:
+            output_lines.append("\n**Arguments:**")
+            output_lines.extend(param_details)
+        output_lines.append("\n---\n") 
+        
+    return "\n".join(output_lines)
 
 def execute_tool(tool_name: str, arguments: dict) -> str:
     """Executes a specific backend tool. The 'arguments' dictionary MUST match the schema provided by search_tools."""

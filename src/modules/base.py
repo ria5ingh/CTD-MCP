@@ -110,7 +110,7 @@ class BaseModule:
                 else:
                     fields[param_name] = (annotation, ...)
 
-            schema_model = create_model(f"{name}_Model", **fields)
+            schema_model = create_model(name, **fields)
             
             DYNAMIC_REGISTRY[self.module_name][prefixed_name] = {
                 "func": method,

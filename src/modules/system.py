@@ -1,5 +1,6 @@
 import datetime
 import json
+import ipaddress
 from typing import Any
 from pydantic import Field
 from mcp.server.fastmcp import FastMCP
@@ -12,7 +13,7 @@ from src.modules.base import BaseModule
 class SystemModule(BaseModule):
     """
     Unified interface for querying Claroty CTD system health, license status, 
-    operational mode, and network interface configurations.
+    operational mode, network configurations, and subnets.
     """
 
     def register_tools(self, server: FastMCP) -> None:
@@ -63,6 +64,42 @@ class SystemModule(BaseModule):
                 destructiveHint=False, 
                 idempotentHint=True, 
                 openWorldHint=False
+            )
+        )
+
+        self._add_tool(
+            server=server, 
+            method=self.get_subnets, 
+            name="get_subnets", 
+            annotations=ToolAnnotations(
+                readOnlyHint=True, 
+                destructiveHint=False, 
+                idempotentHint=True, 
+                openWorldHint=False
+            )
+        )
+        
+        self._add_tool(
+            server=server, 
+            method=self.get_networks, 
+            name="get_networks", 
+            annotations=ToolAnnotations(
+                readOnlyHint=True, 
+                destructiveHint=False, 
+                idempotentHint=True, 
+                openWorldHint=False
+            )
+        )
+
+        self._add_tool(
+            server=server, 
+            method=self.get_network_interfaces, 
+            name="get_network_interfaces",
+            annotations=ToolAnnotations(
+                readOnlyHint=True,
+                destructiveHint=False,
+                idempotentHint=True,
+                openWorldHint=False,
             )
         )
 
@@ -277,3 +314,128 @@ class SystemModule(BaseModule):
             return "\n".join(output)
         except Exception as e:
             return f"Error checking sensors: {str(e)}"
+
+    def get_subnets(self) -> str:
+        """Retrieve subnets discovered by CTD and audit for RFC-1918 compliance."""
+        try:
+            params = {
+                'sort': "name",
+                'page': "1", 
+                'per_page': "50", 
+                'with_assets__exact': "true", 
+                'site_id__exact': "1", 
+            }
+            
+            type_map = {0: "Internal", 1: "External"}
+            data = self.client.request("GET", "/ranger/subnets", params=params)
+            objects = data.get("objects", [])
+
+            if not objects:
+                return "No subnet data objects found."
+
+            output = ["### Subnet Topology Summary"]
+            warnings = []
+            
+            for item in objects:
+                subnet_ip = item.get("name") or "Unknown"
+                network = item.get("network_name") or "N/A"
+                assets = item.get("assets_count") or 0
+                subnet_type = type_map.get(item.get("type"), "Unknown")
+                subnet_id = item.get("resource_id") or "N/A"
+                
+                output.append(f"* **{subnet_ip}** | Network: {network} | Type: {subnet_type} | Assets: {assets} | ID: {subnet_id}")
+
+                # RFC-1918 Compliance Check
+                try:
+                    if subnet_ip and subnet_ip != "Unknown":
+                        net = ipaddress.ip_network(subnet_ip, strict=False)
+                        if not net.is_private and not net.is_link_local:
+                            warnings.append(f"Public IP used internally (Flagged: {subnet_ip})")
+                except ValueError:
+                    pass
+
+            if warnings:
+                output.append("\n**Compliance Warnings (RFC-1918):**")
+                for w in warnings:
+                    output.append(f"* ⚠️ {w}")
+
+            return "\n".join(output)
+        except Exception as e:
+            return f"Error retrieving subnets: {str(e)}"
+
+    def get_networks(self) -> str:
+        """Audit Networks for security baseline features (Known Threats & PCAP)."""
+        try:
+            params = {'sort': "name", 'page': "1", 'per_page': "100"}
+            data = self.client.request("GET", "/ranger/networks", params=params)
+            objects = data.get("objects", [])
+            
+            if not objects:
+                return "No configured networks discovered."
+
+            output = ["### Networks Audit"]
+            warnings = []
+
+            for item in objects:
+                name = item.get("name", "Unknown")
+                known_threats = item.get("use_known_threats", True)
+                save_caps = item.get("save_caps", False)
+
+                if not known_threats:
+                    warnings.append(f"Threat Detection is disabled on network '{name}'.")
+
+                output.append(f"* **{name}** | Known Threats: {'Enabled' if known_threats else 'Disabled'} | PCAP: {'Enabled' if save_caps else 'Disabled'}")
+
+            if warnings:
+                output.append("\n**Security Warnings:**")
+                for w in warnings:
+                    output.append(f"* ⚠️ {w}")
+            else:
+                output.append("\n**Status:** PASS (All networks comply with Threat Detection baseline)")
+
+            return "\n".join(output)
+        except Exception as e:
+            return f"Error auditing networks: {str(e)}"
+
+    def get_network_interfaces(self) -> str:
+        """Retrieve server physical/virtual network interfaces and audit deep packet inspection (DPI) ingestion."""
+        site_id = "1"
+        require_span_interface = True
+
+        try:
+            remote_name = None
+            try:
+                loc_res = self.client.request("GET", "/ranger/wizard/remote_locations", params={"site_id": site_id})
+                if isinstance(loc_res, list) and len(loc_res) > 0: remote_name = loc_res[0].get("id")
+                elif isinstance(loc_res, dict) and loc_res.get("objects"): remote_name = loc_res["objects"][0].get("id")
+            except Exception: pass
+
+            if not remote_name:
+                lic_res = self.client.request("GET", "/ranger/license", params={"site_id": site_id})
+                remote_name = lic_res.get("data", {}).get("machine_uuid", "072043d5-2ad1-5937-e26a-c5d0ec0b09ff")
+
+            iface_list = self.client.request("GET", "/ranger/wizard/interfaces", params={"remote_name": remote_name, "site_id": site_id}).get("data", [])
+            
+            has_ingestion = False
+            output = ["### Network Interfaces"]
+            
+            for iface in iface_list:
+                is_mgmt = iface.get("is_management", False)
+                enabled = iface.get("enabled", False)
+                if not is_mgmt and enabled: has_ingestion = True
+                
+                output.append(f"* **{iface.get('name', 'N/A')}** | IP: {iface.get('ip', 'N/A')} | MAC: {iface.get('mac', 'N/A')} | Process Data: {enabled} | Mgmt: {is_mgmt}")
+
+            warnings = []
+            if require_span_interface and not has_ingestion:
+                warnings.append("No active data-ingestion (DPI) interfaces detected. Ensure SPAN/mirror traffic is mapped.")
+
+            output.insert(1, f"**Status:** {'WARNING' if warnings else 'PASS'}\n**SPAN Ingestion Active:** {has_ingestion}\n")
+            
+            if warnings:
+                output.append("\n**Warnings:**")
+                for w in warnings: output.append(f"* ⚠️ {w}")
+
+            return "\n".join(output)
+        except Exception as e:
+            return f"Error fetching interface configuration: {str(e)}"

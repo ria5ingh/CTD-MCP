@@ -26,8 +26,8 @@ class NetworkModule(BaseModule):
         
         self._add_tool(
             server=server, 
-            method=self.get_network_profiles, 
-            name="get_network_profiles", 
+            method=self.get_networks, 
+            name="get_networks", 
             annotations=ToolAnnotations(
                 readOnlyHint=True, 
                 destructiveHint=False, 
@@ -97,17 +97,17 @@ class NetworkModule(BaseModule):
         except Exception as e:
             return f"Error retrieving subnets: {str(e)}"
 
-    def get_network_profiles(self) -> str:
-        """Audit Network Profiles for security baseline features (Known Threats & PCAP)."""
+    def get_networks(self) -> str:
+        """Audit Networks for security baseline features (Known Threats & PCAP)."""
         try:
             params = {'sort': "name", 'page': "1", 'per_page': "100"}
             data = self.client.request("GET", "/ranger/networks", params=params)
             objects = data.get("objects", [])
             
             if not objects:
-                return "No configured network profiles discovered."
+                return "No configured networks discovered."
 
-            output = ["### Network Profiles Audit"]
+            output = ["### Networks Audit"]
             warnings = []
 
             for item in objects:
@@ -116,7 +116,7 @@ class NetworkModule(BaseModule):
                 save_caps = item.get("save_caps", False)
 
                 if not known_threats:
-                    warnings.append(f"Threat Detection is disabled on network profile '{name}'.")
+                    warnings.append(f"Threat Detection is disabled on network '{name}'.")
 
                 output.append(f"* **{name}** | Known Threats: {'Enabled' if known_threats else 'Disabled'} | PCAP: {'Enabled' if save_caps else 'Disabled'}")
 
@@ -125,11 +125,11 @@ class NetworkModule(BaseModule):
                 for w in warnings:
                     output.append(f"* ⚠️ {w}")
             else:
-                output.append("\n**Status:** PASS (All profiles comply with Threat Detection baseline)")
+                output.append("\n**Status:** PASS (All networks comply with Threat Detection baseline)")
 
             return "\n".join(output)
         except Exception as e:
-            return f"Error auditing network profiles: {str(e)}"
+            return f"Error auditing networks: {str(e)}"
 
     def get_network_interfaces(self) -> str:
         """Retrieve server physical/virtual network interfaces and audit deep packet inspection (DPI) ingestion."""
