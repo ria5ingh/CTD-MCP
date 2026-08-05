@@ -295,6 +295,91 @@ class InsightsModule(BaseModule):
             except Exception as e:
                 return f"Error fetching details for insight '{insight_name}': {str(e)}"
     
+    
+    #filters assets by insight
+    def filter_assets_by_insight(
+            self,
+            insight_name: str = Field(
+                description="Exact insight name to filter by. Call `get_common_schema` for allowed insight names.",
+                examples=["Unsecured Protocols"]
+            ),
+            fields: list[str] = Field(
+                default=["id", "name", "ipv4", "vendor", "asset_type"],
+                description="Asset fields to return. Call `get_common_schema` for available fields. Defaults to basic network/identity fields.",
+                examples=[["id", "hostname", "ipv4", "risk_level"]]
+            ),
+            limit: int | None = Field(
+                default=None,
+                ge=1,
+                le=500,
+                description="Max assets to return. Omitting retrieves all matches."
+            )
+        ) -> str:
+            """Retrieve assets affected by a single insight.
+
+            Use ONLY when filtering by an insight name alone. For queries combining 
+            an insight with other asset attributes, use `search_assets`. Call `get_common_schema` for
+            available insight names to filter by and fields to return.
+            """
+            if not insight_name:
+                return "Error: 'insight_name' is strictly required."
+
+            try:
+                clean_fields = [str(f).strip() for f in fields if str(f).strip()]
+                if not clean_fields:
+                    clean_fields = ["id", "name", "ipv4", "mac", "asset_type"]
+
+                params: dict[str, Any] = {
+                    'special_hint__exact': 0,  
+                    'valid__exact': True,      
+                    'ghost__exact': False,     
+                    'site_id__exact': 1,
+                    'approved__exact': True,
+                    'fields': ",;$".join(clean_fields),
+                    'insight_name__exact': insight_name.strip()
+                }
+
+                all_objects = []
+                current_page = 1
+                per_page = min(limit, 500) if limit is not None else 500
+
+                while True:
+                    params['page'] = current_page
+                    params['per_page'] = per_page
+
+                    response_data = self.client.request("GET", "/ranger/assets", params=params)
+                    
+                    if not isinstance(response_data, dict):
+                        break
+
+                    objects = response_data.get('objects', [])
+                    if not objects:
+                        break
+
+                    all_objects.extend(objects)
+
+                    if limit is not None and len(all_objects) >= limit:
+                        all_objects = all_objects[:limit]
+                        break
+                    
+                    if len(objects) < per_page:
+                        break
+                        
+                    current_page += 1
+
+                if not all_objects:
+                    return f"No assets found affected by the insight: '{insight_name}'."
+
+                optimized_objects = []
+                for obj in all_objects:
+                    cleaned_obj = {k: v for k, v in obj.items() if v not in (None, "", [], {})}
+                    optimized_objects.append(cleaned_obj)
+
+                return self._format_to_markdown(optimized_objects)
+
+            except Exception as e:
+                return f"Error retrieving assets by insight name: {str(e)}"
+
 
     #removing the key filter
     # def filter_assets_by_insight_key(
@@ -386,86 +471,3 @@ class InsightsModule(BaseModule):
 
     #         except Exception as e:
     #             return f"Error filtering assets by insight key: {str(e)}"
-    
-    #filters assets by insight
-    def filter_assets_by_insight(
-            self,
-            insight_name: str = Field(
-                description="Exact insight name to filter by. Call `get_common_schema` for allowed insight names.",
-                examples=["Unsecured Protocols"]
-            ),
-            fields: list[str] = Field(
-                default=["id", "name", "ipv4", "vendor", "asset_type"],
-                description="Asset fields to return. Call `get_common_schema` for available fields. Defaults to basic network/identity fields.",
-                examples=[["id", "hostname", "ipv4", "risk_level"]]
-            ),
-            limit: int | None = Field(
-                default=None,
-                ge=1,
-                le=500,
-                description="Max assets to return. Omitting retrieves all matches."
-            )
-        ) -> str:
-            """Retrieve assets affected by a single insight.
-
-            Use ONLY when filtering by an insight name alone. For queries combining 
-            an insight with other asset attributes, use `search_assets`. Call `get_common_schema` for
-            available insight names to filter by and fields to return.
-            """
-            if not insight_name:
-                return "Error: 'insight_name' is strictly required."
-
-            try:
-                clean_fields = [str(f).strip() for f in fields if str(f).strip()]
-                if not clean_fields:
-                    clean_fields = ["id", "name", "ipv4", "mac", "asset_type"]
-
-                params: dict[str, Any] = {
-                    'special_hint__exact': 0,  
-                    'valid__exact': True,      
-                    'ghost__exact': False,     
-                    'approved__exact': True,
-                    'fields': ",;$".join(clean_fields),
-                    'insight_name__exact': insight_name.strip()
-                }
-
-                all_objects = []
-                current_page = 1
-                per_page = min(limit, 500) if limit is not None else 500
-
-                while True:
-                    params['page'] = current_page
-                    params['per_page'] = per_page
-
-                    response_data = self.client.request("GET", "/ranger/assets", params=params)
-                    
-                    if not isinstance(response_data, dict):
-                        break
-
-                    objects = response_data.get('objects', [])
-                    if not objects:
-                        break
-
-                    all_objects.extend(objects)
-
-                    if limit is not None and len(all_objects) >= limit:
-                        all_objects = all_objects[:limit]
-                        break
-                    
-                    if len(objects) < per_page:
-                        break
-                        
-                    current_page += 1
-
-                if not all_objects:
-                    return f"No assets found affected by the insight: '{insight_name}'."
-
-                optimized_objects = []
-                for obj in all_objects:
-                    cleaned_obj = {k: v for k, v in obj.items() if v not in (None, "", [], {})}
-                    optimized_objects.append(cleaned_obj)
-
-                return self._format_to_markdown(optimized_objects)
-
-            except Exception as e:
-                return f"Error retrieving assets by insight name: {str(e)}"

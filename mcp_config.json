@@ -1,11 +1,12 @@
 {
   "SERVER_MODE": {
-    "USE_DYNAMIC_MODE": true,
+    "USE_DYNAMIC_MODE": false,
     "LOG_LEVEL": "INFO"
   },
   "ENABLED_MODULES": {
     "assets": true,
     "insights": true,
-    "vulnerabilities": true
+    "vulnerabilities": true,
+    "network": true
   }
 }

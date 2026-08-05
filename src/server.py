@@ -7,6 +7,7 @@ from src.client import CTDClient
 from src.modules.base import DYNAMIC_REGISTRY, USE_DYNAMIC_MODE, config_data
 from src.modules.assets import AssetsModule
 from src.modules.insights import InsightsModule
+from src.modules.network import NetworkModule
 from src.modules.vulnerabilities import VulnerabilitiesModule
 #from src.modules.modulename import NameModule
 
@@ -22,6 +23,8 @@ AVAILABLE_MODULES = {
     "assets": AssetsModule,
     "insights": InsightsModule,
     "vulnerabilities": VulnerabilitiesModule,
+    "network": NetworkModule,
+    #"system": SystemModule,
     #"name" : NameModule,
 }
 

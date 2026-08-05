@@ -122,6 +122,7 @@ class AssetsModule(BaseModule):
                     'valid__exact': True,      # Default to valid assets
                     'ghost__exact': False,     # Default to non-ghost assets
                     'approved__exact': True,   # Default to approved assets
+                    'site_id__exact' : 1,
                     'fields': ",;$".join(clean_fields)
                 }
 
