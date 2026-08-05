@@ -25,6 +25,7 @@ For any filter marked with **Enums**, pass a single value or an array of multipl
 | `ipv4__exact` | String | Exact IPv4 address. | `"192.168.1.50"` |
 | `ipv6__exact` | String | Exact IPv6 address. | `"2001:0db8:85a3::8a2e:0370:7334"` |
 | `mac__icontains` | String | Partial or full MAC address. | `"00:1A:2B"` or `"00:1A:2B:3C:4D:5E"` |
+| `subnet_id__exact` | String | Exact subnet resource ID from CTD. | `"27-1"` |
 | `vlan__exact` | String | Exact VLAN identifier. | `"100"` |
 | `asset_type__exact` | Integer | Specific asset classification ID. *(Call `get_common_schema` for Asset Type Enums)* | `12` |
 | `class_type__exact` | Integer | Asset class ID. **Enums:** `0` (OT), `1` (IT), `2` (IoT). | `0` |

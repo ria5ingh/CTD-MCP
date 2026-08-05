@@ -1,6 +1,6 @@
 {
   "SERVER_MODE": {
-    "USE_DYNAMIC_MODE": false,
+    "USE_DYNAMIC_MODE": true,
     "LOG_LEVEL": "INFO"
   },
   "ENABLED_MODULES": {
