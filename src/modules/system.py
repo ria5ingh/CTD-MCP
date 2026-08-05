@@ -18,6 +18,8 @@ class SystemModule(BaseModule):
     def register_tools(self, server: FastMCP) -> None:
         super().register_tools(server)
 
+        
+
         self._add_tool(
             server=server, 
             method=self.get_system_health, 
@@ -46,18 +48,6 @@ class SystemModule(BaseModule):
             server=server, 
             method=self.get_system_overview, 
             name="get_system_overview",
-            annotations=ToolAnnotations(
-                readOnlyHint=True,
-                destructiveHint=False,
-                idempotentHint=True,
-                openWorldHint=False,
-            )
-        )
-
-        self._add_tool(
-            server=server, 
-            method=self.get_network_interfaces, 
-            name="get_network_interfaces",
             annotations=ToolAnnotations(
                 readOnlyHint=True,
                 destructiveHint=False,
@@ -247,46 +237,3 @@ class SystemModule(BaseModule):
             f"**Operational Mode:** {operational_mode}"
         ]
         return "\n".join(output)
-
-    def get_network_interfaces(self) -> str:
-        """Retrieve server physical/virtual network interfaces and audit deep packet inspection (DPI) ingestion."""
-        site_id = "1"
-        require_span_interface = True
-
-        try:
-            remote_name = None
-            try:
-                loc_res = self.client.request("GET", "/ranger/wizard/remote_locations", params={"site_id": site_id})
-                if isinstance(loc_res, list) and len(loc_res) > 0: remote_name = loc_res[0].get("id")
-                elif isinstance(loc_res, dict) and loc_res.get("objects"): remote_name = loc_res["objects"][0].get("id")
-            except Exception: pass
-
-            if not remote_name:
-                lic_res = self.client.request("GET", "/ranger/license", params={"site_id": site_id})
-                remote_name = lic_res.get("data", {}).get("machine_uuid", "072043d5-2ad1-5937-e26a-c5d0ec0b09ff")
-
-            iface_list = self.client.request("GET", "/ranger/wizard/interfaces", params={"remote_name": remote_name, "site_id": site_id}).get("data", [])
-            
-            has_ingestion = False
-            output = ["### Network Interfaces"]
-            
-            for iface in iface_list:
-                is_mgmt = iface.get("is_management", False)
-                enabled = iface.get("enabled", False)
-                if not is_mgmt and enabled: has_ingestion = True
-                
-                output.append(f"* **{iface.get('name', 'N/A')}** | IP: {iface.get('ip', 'N/A')} | MAC: {iface.get('mac', 'N/A')} | Process Data: {enabled} | Mgmt: {is_mgmt}")
-
-            warnings = []
-            if require_span_interface and not has_ingestion:
-                warnings.append("No active data-ingestion (DPI) interfaces detected. Ensure SPAN/mirror traffic is mapped.")
-
-            output.insert(1, f"**Status:** {'WARNING' if warnings else 'PASS'}\n**SPAN Ingestion Active:** {has_ingestion}\n")
-            
-            if warnings:
-                output.append("\n**Warnings:**")
-                for w in warnings: output.append(f"* ⚠️ {w}")
-
-            return "\n".join(output)
-        except Exception as e:
-            return f"Error fetching interface configuration: {str(e)}"

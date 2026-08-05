@@ -6,6 +6,8 @@
   "ENABLED_MODULES": {
     "assets": true,
     "insights": true,
-    "vulnerabilities": true
+    "vulnerabilities": false,
+    "system": false,
+    "network": true
   }
 }
