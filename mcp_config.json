@@ -7,6 +7,7 @@
     "assets": true,
     "insights": true,
     "vulnerabilities": true,
-    "network": true
+    "network": true,
+    "system": true
   }
 }

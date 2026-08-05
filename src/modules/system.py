@@ -44,13 +44,25 @@ class SystemModule(BaseModule):
 
         self._add_tool(
             server=server, 
-            method=self.get_system_overview, 
-            name="get_system_overview",
+            method=self.get_system_version, 
+            name="get_system_version",
             annotations=ToolAnnotations(
                 readOnlyHint=True,
                 destructiveHint=False,
                 idempotentHint=True,
                 openWorldHint=False,
+            )
+        )
+
+        self._add_tool(
+            server=server, 
+            method=self.get_sensor_status, 
+            name="get_sensor_status", 
+            annotations=ToolAnnotations(
+                readOnlyHint=True, 
+                destructiveHint=False, 
+                idempotentHint=True, 
+                openWorldHint=False
             )
         )
 
@@ -126,8 +138,8 @@ class SystemModule(BaseModule):
 
             # Format as Markdown for LLM compatibility
             output = ["### System Health Summary"]
-            output.append(f"**Status:** {'WARNING' if warnings else 'PASS'}")
-            output.append(f"**CPU Usage:** {cpu_pct}")
+            output.append(f"**Status:** {'WARNING' if warnings else 'PASS'} | ")
+            output.append(f"**CPU Usage:** {cpu_pct} | ")
             output.append(f"**RAM Usage:** {ram_pct}")
             
             output.append("\n**Disk Partitions:**")
@@ -176,11 +188,11 @@ class SystemModule(BaseModule):
 
                 output = [
                     "### License Information",
-                    f"**Overall Status:** {assessment}",
-                    f"**License State:** {status_color.capitalize()}",
-                    f"**FIPS Enabled:** {is_fips}",
-                    f"**Expiration Date:** {exp_date_str}",
-                    f"**Days Remaining:** {days_left if days_left is not None else 'N/A'}",
+                    f"**Overall Status:** {assessment} | ",
+                    f"**License State:** {status_color.capitalize()} |",
+                    f"**FIPS Enabled:** {is_fips} |",
+                    f"**Expiration Date:** {exp_date_str} |",
+                    f"**Days Remaining:** {days_left if days_left is not None else 'N/A'} |",
                     f"**Machine UUID:** {machine_uuid}"
                 ]
                 
@@ -196,7 +208,7 @@ class SystemModule(BaseModule):
         except Exception as e:
             return f"Error fetching license info: {str(e)}"
 
-    def get_system_overview(self) -> str:
+    def get_system_version(self) -> str:
         """Fetch system software version numbers, applied threat intelligence bundle, and operational mode."""
         site_id = "1"
 
@@ -228,10 +240,40 @@ class SystemModule(BaseModule):
         except Exception: pass
 
         output = [
-            "### System Overview",
-            f"**Base Version:** {base_version}",
-            f"**Update Version:** {update_version}",
-            f"**Threat Bundle ID:** {threat_bundle}",
-            f"**Operational Mode:** {operational_mode}"
+            "### System Versioning Information",
+            f"**Base Version:** {base_version} | **Update Version:** {update_version} | **Threat Bundle ID:** {threat_bundle} | **Operational Mode:** {operational_mode}"
         ]
         return "\n".join(output)
+
+    def get_sensor_status(self) -> str:
+        """Check health and connectivity status of Claroty edge sensors."""
+        try:
+            data = self.client.request("GET", "/ranger/system/check", params={"site_id": "1"})
+            parents = data.get("data", {}).get("statuses", {}).get("parents", [])
+            
+            if not parents:
+                return "No collection sensors are currently connected to this site."
+
+            output = ["### Collection Sensors Status"]
+            warnings = []
+
+            for p in parents:
+                name = p.get("name", "Unknown")
+                addr = p.get("address", "N/A")
+                is_conn = p.get("is_connected", False)
+                
+                output.append(f"* Name: **{name}** | IP: {addr} | Connected: {is_conn}")
+
+                if not is_conn:
+                    warnings.append(f"Sensor '{name}' ({addr}) is offline.")
+
+            if warnings:
+                output.append("\n**Connectivity Warnings:**")
+                for w in warnings:
+                    output.append(f"* ⚠️ {w}")
+            else:
+                output.append("\n**Status:** PASS (All sensors online)")
+
+            return "\n".join(output)
+        except Exception as e:
+            return f"Error checking sensors: {str(e)}"

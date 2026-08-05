@@ -48,17 +48,6 @@ class NetworkModule(BaseModule):
             )
         )
 
-        self._add_tool(
-            server=server, 
-            method=self.get_sensor_status, 
-            name="get_sensor_status", 
-            annotations=ToolAnnotations(
-                readOnlyHint=True, 
-                destructiveHint=False, 
-                idempotentHint=True, 
-                openWorldHint=False
-            )
-        )
 
     def get_subnets(self) -> str:
         """Retrieve subnets discovered by CTD and audit for RFC-1918 compliance."""
@@ -184,36 +173,3 @@ class NetworkModule(BaseModule):
             return "\n".join(output)
         except Exception as e:
             return f"Error fetching interface configuration: {str(e)}"
-
-    def get_sensor_status(self) -> str:
-        """Check health and connectivity status of Claroty edge sensors."""
-        try:
-            data = self.client.request("GET", "/ranger/system/check", params={"site_id": "1"})
-            parents = data.get("data", {}).get("statuses", {}).get("parents", [])
-            
-            if not parents:
-                return "No collection sensors are currently connected to this site."
-
-            output = ["### Collection Sensors Status"]
-            warnings = []
-
-            for p in parents:
-                name = p.get("name", "Unknown")
-                addr = p.get("address", "N/A")
-                is_conn = p.get("is_connected", False)
-                
-                output.append(f"* **{name}** | IP: {addr} | Connected: {is_conn}")
-
-                if not is_conn:
-                    warnings.append(f"Sensor '{name}' ({addr}) is offline.")
-
-            if warnings:
-                output.append("\n**Connectivity Warnings:**")
-                for w in warnings:
-                    output.append(f"* ⚠️ {w}")
-            else:
-                output.append("\n**Status:** PASS (All sensors online)")
-
-            return "\n".join(output)
-        except Exception as e:
-            return f"Error checking sensors: {str(e)}"
