@@ -8,6 +8,7 @@
     "insights": true,
     "vulnerabilities": true,
     "network": false,
-    "system": true
+    "system": true,
+    "zones": true
   }
 }
