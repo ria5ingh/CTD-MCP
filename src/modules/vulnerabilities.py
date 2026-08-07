@@ -137,7 +137,7 @@ class VulnerabilitiesModule(BaseModule):
             description="Page number to fetch. Use this to paginate through results if the response indicates more pages are available.",
         ),
     ) -> str:
-        """Find confirmed vulnerabilities (CVEs) based on keyword search, severity, exploitability, or other criteria."""
+        """Find CONFIRMED vulnerabilities (CVEs) based on keyword search, severity, exploitability, or other criteria."""
         try:
             current_page = page if page is not None else 1
             per_page = min(limit, 500) if limit is not None else 500
@@ -148,7 +148,7 @@ class VulnerabilitiesModule(BaseModule):
                 'ghost__exact': False,
                 'affected_assets__exact': 0, 
                 'special_hint__exact': 0,    
-                'relevance__exact': 1,      
+                'relevance__exact': 1,  #ONLY CONFIRMED
                 'sort': sort_by,
                 'page': current_page,
                 'per_page': per_page

@@ -527,22 +527,31 @@ class SystemModule(BaseModule):
             proto_master_list.sort(key=lambda x: x[0].lower())
 
             output = [
-                "### DPI Protocols Audit & Drift Analysis",
-                "*Legend: `+` = Enabled | `x` = Disabled*\n"
+                "### DPI Protocols Audit\n"
             ]
 
             if drifted_protocols:
-                output.append("**Protocol Drift Detected (Review Required):**")
+                output.append("**Protocol Drift from Baseline**")
                 for dp in drifted_protocols:
                     output.append(f"* ⚠️ {dp}")
                 output.append("")
             else:
                 output.append("**Status:** PASS (System perfectly matches baseline configuration)\n")
 
-            output.append("**Full Protocol State:**")
-            for name, is_en in proto_master_list:
-                output.append(f"* {'+' if is_en else 'x'} {name}")
+            output.append("\n### Full Protocol State")
+            
+            # 1. Split into two separate lists based on status
+            enabled_protos = [name for name, is_en in proto_master_list if is_en]
+            disabled_protos = [name for name, is_en in proto_master_list if not is_en]
+            
+            # 2. Join them as highly compressed comma-separated strings
+            if enabled_protos:
+                output.append(f"**Enabled Protocols:** {', '.join(enabled_protos)} \n")
+            
+            if disabled_protos:
+                output.append(f"**Disabled Protocols:** {', '.join(disabled_protos)}")
 
             return "\n".join(output)
+            
         except Exception as e:
             return f"Error auditing protocol drift: {str(e)}"
