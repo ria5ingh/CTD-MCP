@@ -12,7 +12,8 @@ For any filter marked with **Enums**, pass a single value or an array of multipl
 | :--- | :--- | :--- | :--- |
 | `category__exact` | Integer | Alert category. **Enums:** `0` (Integrity), `1` (Security). | `1` |
 | `severity__exact` | Integer | Alert severity level. **Enums:** `0` (Low), `1` (Medium), `2` (High), `3` (Critical). | `3` |
-| `virtual_zone__exact` | String | Exact virtual zone resource ID. | `"79-1"` |
+| `virtual_zone__exact` | Integer | Exact virtual zone ID. | `79` |
+| `story_id__exact`| String | Exact story resource ID. | `"1-1"` |
 | `id__exact` | String | Exact alert resource ID. *Note: You can pass multiple IDs in a list to fetch specific alerts.* | `"204-1"` |
 | `type__exact` | Integer | Specific alert classification. **Enums:** *(See Section 3 for mappings)*. | `23` |
 
