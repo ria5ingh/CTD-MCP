@@ -7,7 +7,6 @@
     "assets": true,
     "insights": true,
     "vulnerabilities": true,
-    "network": false,
     "system": true,
     "zones": true,
     "alerts" : true
