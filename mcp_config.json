@@ -9,6 +9,7 @@
     "vulnerabilities": true,
     "system": true,
     "zones": true,
-    "alerts" : true
+    "alerts" : true,
+    "baselines" : true
   }
 }

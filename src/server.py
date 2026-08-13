@@ -11,7 +11,10 @@ from src.modules.vulnerabilities import VulnerabilitiesModule
 from src.modules.system import SystemModule
 from src.modules.zones import ZonesModule
 from src.modules.alerts import AlertsModule
+from src.modules.baselines import BaselinesModule
+
 #from src.modules.modulename import NameModule
+
 
 mcp = FastMCP("Claroty CTD MCP Server")
 
@@ -28,6 +31,7 @@ AVAILABLE_MODULES = {
     "system": SystemModule,
     "zones": ZonesModule,
     "alerts" : AlertsModule,
+    "baselines" : BaselinesModule,
     #"name" : NameModule,
 }
 

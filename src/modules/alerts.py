@@ -81,7 +81,7 @@ class AlertsModule(BaseModule):
         resource = TextResource(
                     uri=AnyUrl(ALERTS_SCHEMA_URI),
                     name="ctd_alerts_schema",
-                    description="Contains the master guide, allowed filters, and enums for the `search_alerts` tools",
+                    description="Contains the master guide, allowed filters, and enums for the `search_alerts` tool",
                     text=ALERTS_SCHEMA_DOCS, 
                     mime_type="text/markdown"
                 )        
