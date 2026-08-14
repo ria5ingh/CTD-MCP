@@ -31,7 +31,7 @@ class AlertsModule(BaseModule):
         self._add_tool(
             server=server, 
             method=self.search_alerts, 
-            name="self.search_alerts",
+            name="search_alerts",
             annotations=ToolAnnotations(
                 readOnlyHint=True,
                 destructiveHint=False,
@@ -43,7 +43,7 @@ class AlertsModule(BaseModule):
         self._add_tool(
             server=server, 
             method=self.get_stories, 
-            name="self.get_stories",
+            name="get_stories",
             annotations=ToolAnnotations(
                 readOnlyHint=True,
                 destructiveHint=False,
@@ -55,7 +55,7 @@ class AlertsModule(BaseModule):
         self._add_tool(
             server=server,
             method=self.get_alert_details_by_id,
-            name="self.get_alert_details_by_id",
+            name="get_alert_details_by_id",
             annotations=ToolAnnotations(
                 readOnlyHint=True,
                 destructiveHint=False,
@@ -67,7 +67,7 @@ class AlertsModule(BaseModule):
         self._add_tool(
             server=server,
             method=self.get_events_by_id,
-            name="self.get_events_by_id",
+            name="get_events_by_id",
             annotations=ToolAnnotations(
                 readOnlyHint=True,
                 destructiveHint=False,
