@@ -1,3 +1,5 @@
+# src/resources/baselines.py
+
 BASELINES_SCHEMA_URI = "resource://ctd/baselines-schema"
 
 BASELINES_SCHEMA_DOCS = """# CTD Baselines Search Schema and Guide

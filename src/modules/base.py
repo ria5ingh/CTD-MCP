@@ -3,7 +3,7 @@ import sys
 import json
 import inspect
 from typing import Callable, Any
-from pydantic import create_model
+from pydantic import create_model, AnyUrl
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import Resource, ToolAnnotations
@@ -68,15 +68,20 @@ class BaseModule:
                 server=server,
                 method=self.get_common_schema,
                 name="get_common_schema",
-                annotations=READ_ONLY_ANNOTATIONS
+                annotations=ToolAnnotations(
+                    readOnlyHint=True,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                )
             )
             BaseModule._common_tool_registered = True
 
     def register_resources(self, server: FastMCP) -> None:
         if not BaseModule._common_resource_registered:
             resource = Resource(
-                uri=COMMON_SCHEMA_URI,
-                name="CTD Common Schema",
+                uri=AnyUrl(COMMON_SCHEMA_URI),
+                name="ctd_common_schema",
                 description="Shared enums and return fields used across multiple tools.",
                 mime_type="text/markdown",
                 text=COMMON_SCHEMA_DOCS

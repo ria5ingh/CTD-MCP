@@ -1,4 +1,3 @@
-    
 import json
 from typing import Any, Optional
 from pydantic import Field, AnyUrl
