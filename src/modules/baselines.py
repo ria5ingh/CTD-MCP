@@ -10,6 +10,12 @@ from src.modules.base import BaseModule
 from src.resources.baselines import BASELINES_SCHEMA_DOCS, BASELINES_SCHEMA_URI
 
 class BaselinesModule(BaseModule):
+    """Baselines module for Claroty CTD MCP Server.
+
+    This module provides tools for auditing known network behaviors learned 
+    during Training Mode. Includes tools to fetch high-level summaries of baseline 
+    groups and to search for specific, individual baseline communications between assets.
+    """
 
     def register_tools(self, server: FastMCP) -> None:
             super().register_tools(server)
@@ -87,10 +93,10 @@ class BaselinesModule(BaseModule):
                 description="Maximum number of summary groups to return. Defaults to 100.",
             ),
         ) -> str:
-            """Fetch a high-level summary of baseline network communications.
+            """Fetch a high-level SUMMARY of baseline groups.
         
             Returns the total count of baseline events grouped by Protocol, Port, Category, and Access Type. 
-            Filter the search results by source/dest virtual zone, category, access type, or protocol to narrow the scope.
+            Filter the search results by source/dest virtsual zone, category, access type, or protocol to narrow the scope.
             (Noisy broadcast/multicast communications are excluded by default).
             """
             try:
@@ -198,7 +204,7 @@ class BaselinesModule(BaseModule):
             description="Maximum number of baselines to return. Defaults to 100.",
         ),
     ) -> str:
-        """Search and retrieve specific baseline communications between assets.
+        """Search and retrieve SPECIFIC baseline communications between assets.
         
         Returns individual baseline events representing commands or communications observed during Training Mode.
         Filter the results by source/dest IP, virtual zone, protocol, or baseline description for more granular searching.

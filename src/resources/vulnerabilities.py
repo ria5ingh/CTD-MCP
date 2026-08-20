@@ -13,7 +13,6 @@ This document provides the allowed search filters, default parameters, and retur
 * `ghost__exact`: `false`
 * `affected_assets__exact`: `0` (Only returns CVEs matched to assets in your environment)
 * `special_hint__exact`: `0` (Unicast)
-* `relevance__exact`: `1` (Confirmed matches only)
 
 
 ### B. `list_assets_per_cve` & `list_cves_per_asset`
@@ -22,7 +21,6 @@ This document provides the allowed search filters, default parameters, and retur
 * `site_id__exact`: `1`
 * `ghost__exact`: `false`
 * `special_hint__exact`: `0` (Unicast)
-* `relevance__exact`: `1` (Confirmed matches only)
 
 ---
 
@@ -34,6 +32,7 @@ Use these keys in the `filters` dictionary.
 | Filter Key | Type | Description | Example |
 | :--- | :--- | :--- | :--- |
 | `actively_exploited__exact` | Boolean | Exploited in the wild flag. | `true` |
+| `relevance__exact` | Integer | Vulnerability relevance. **Enums:** `0` (Potentially Relevant), `1` (Confirmed) | `1` |
 | `status__exact` | Integer | Vulnerability status. **Enums:** `0` (Open), `1` (Fixed), `2` (Irrelevant), `3` (Accept), `4` (Manually Fixed). | `0` |
 | `epss_score__exact` | String | EPSS score category. **Enums:** `"low"`, `"medium"`, `"high"`, `"critical"`. | `"high"` |
 | `cvss_severity`| String | CVSS v3 severity level. **Enums:** `"low"` (1.0-3.9), `"medium"` (4.0-6.9), `"high"` (7.0-8.9), `"critical"` (9.0-10.0). | `"critical"` |

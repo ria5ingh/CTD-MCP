@@ -8,8 +8,11 @@ from src.modules.base import BaseModule
 
 class ZonesModule(BaseModule):
     """
-    Unified interface for querying and analyzing Virtual Zones, including zone communications, 
-    asset groupings, and Purdue Model network segmentation.
+    Zones module for Claroty CTD MCP Server.
+
+    This module provides tools for analyzing Virtual Zones, zone grouping
+    methods and configurations, zone assets and vulnerabilities, 
+    and zone communications.
     """
 
     def register_tools(self, server: FastMCP) -> None:

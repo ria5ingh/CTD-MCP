@@ -12,6 +12,13 @@ from src.resources.alerts import ALERTS_SCHEMA_URI, ALERTS_SCHEMA_DOCS
 
 
 class AlertsModule(BaseModule):
+    """Alerts module for Claroty CTD MCP Server.
+
+    This module provides tools for investigating UNRESEOLVED network security alerts,
+    including searching and filtering all alerts, retrieving chronologically grouped 
+    alert stories, extracting in-depth metadata for a specific alert ID, and 
+    fetching the individual events of an alert.
+    """
 
     def register_tools(self, server: FastMCP) -> None:
         super().register_tools(server)

@@ -11,12 +11,11 @@ from src.resources.assets import ASSETS_SCHEMA_URI, ASSETS_SCHEMA_DOCS
 
 class AssetsModule(BaseModule):
     """
-    Unified interface for querying and analyzing network assets via Claroty CTD V1 REST endpoints.
+    Assets module for Claroty CTD MCP Server.
 
-    Provides core mechanisms for bulk asset discovery (`search_assets`) and isolated, field-level 
-    metadata extraction (`get_asset_details`). Use this module to perform network posture assessments, 
-    validate asset identifiers, and retrieve structural profiles (identity, network config, 
-    and vulnerability/risk state) from target network environments.
+    This module provides tools for querying and analyzing network assets, 
+    including searching all assets using specific filters and extracting 
+    in-depth metadata for exact assets.
     """
 
     def register_tools(self, server: FastMCP) -> None:

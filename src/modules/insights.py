@@ -14,11 +14,11 @@ from src.resources.insights import INSIGHTS_SCHEMA_URI, INSIGHTS_SCHEMA_DOCS
 
 class InsightsModule(BaseModule):
     """
-    Interface for retrieving automated operational and security insights from Claroty CTD.
-    
-    Provides access to holistic network risk assessments, pinpointing vulnerable assets, 
-    risky network configurations, and critical communication patterns (e.g., external 
-    connections, unsecured protocols, and PLC manipulations) across the industrial network.
+    Insights module for Claroty CTD MCP Server.
+
+    This module provides tools for retrieving automated operational and 
+    security insights, including searching aggregated network warnings, 
+    extracting specific insight details, and listing affected assets.
     """
 
     def register_tools(self, server: FastMCP) -> None:  
@@ -277,17 +277,6 @@ class InsightsModule(BaseModule):
                         else:
                             row_data.append("")
 
-                    #FILTER KEY LOGIC
-                    # filter_key = row.get("row_filter", {}).get("filter_key", "")
-                    
-                    # if filter_key:
-                    #     # The backticks force the LLM to treat it as a literal string
-                    #     formatted_key = f"`{filter_key}`"
-                    # else:
-                    #     formatted_key = ""
-
-                    # row_data.append(formatted_key.replace("|", "\\|"))
-
                     md_lines.append("| " + " | ".join(row_data) + " |")
 
                 return "\n".join(md_lines)
@@ -379,95 +368,3 @@ class InsightsModule(BaseModule):
 
             except Exception as e:
                 return f"Error retrieving assets by insight name: {str(e)}"
-
-
-    #removing the key filter
-    # def filter_assets_by_insight_key(
-    #         self,
-    #         filter_key: str = Field(
-    #             description="Use the exact string inside the backticks from `get_insight_details` to drill down into assets for a specific insight sub-category. Copy verbatim—do not alter, decode, or add spaces. Query strictly one key per message.",
-    #             examples=["Unsecured Protocols,;$1,;$,;$SMB,;$SMB+version+1+is..."]
-    #         ),
-    #         fields: list[str] = Field(
-    #             default=["id", "name", "ipv4", "vendor", "asset_type"],
-    #             description="List of requested asset fields. Call the `get_common_schema` tool for available fields. Defaults to a standard set of identity and network fields if omitted.",
-    #             examples=[["id", "hostname", "ipv4", "os", "risk_level"]]
-    #         ),
-    #         limit: int | None = Field(
-    #             default=None,
-    #             ge=1,
-    #             le=500,
-    #             description="Maximum number of assets to return. If omitted, all matching assets are retrieved via auto-pagination."
-    #         )
-    #     ) -> str:
-    #         """Retrieve assets associated with a specific insight sub-category using a row key.
-
-    #         Use this tool to drill down into a `filter_key` returned by `get_insight_details`. 
-    #         Do not use this tool for broad searches by insight name. Query one key at a time.
-    #         """
-
-    #         if not filter_key:
-    #             return "Error: 'filter_key' is strictly required."
-
-    #         try:
-    #             # Input Validation for fields
-    #             clean_fields = [str(f).strip() for f in fields if str(f).strip()]
-    #             if not clean_fields:
-    #                 clean_fields = ["id", "name", "ipv4", "mac", "asset_type"] # Default fallback
-
-    #             # Base default parameters for the assets endpoint
-    #             params: dict[str, Any] = {
-    #                 'special_hint__exact': 0,  
-    #                 'valid__exact': True,      
-    #                 'ghost__exact': False,     
-    #                 'approved__exact': True,
-    #                 'fields': ",;$".join(clean_fields),
-    #                 'insight_row_key__exact': filter_key.strip()
-    #             }
-
-    #             all_objects = []
-    #             current_page = 1
-                
-    #             # Chunking matching search_assets behavior
-    #             per_page = min(limit, 500) if limit is not None else 500
-
-    #             while True:
-    #                 params['page'] = current_page
-    #                 params['per_page'] = per_page
-
-    #                 # Fetch from V1 Assets endpoint
-    #                 response_data = self.client.request("GET", "/ranger/assets", params=params)
-                    
-    #                 if not isinstance(response_data, dict):
-    #                     break
-
-    #                 objects = response_data.get('objects', [])
-    #                 if not objects:
-    #                     break
-
-    #                 all_objects.extend(objects)
-
-    #                 # Stop Conditions
-    #                 if limit is not None and len(all_objects) >= limit:
-    #                     all_objects = all_objects[:limit] # Truncate to exact requested limit
-    #                     break
-                    
-    #                 if len(objects) < per_page:
-    #                     break
-                        
-    #                 current_page += 1
-
-    #             if not all_objects:
-    #                 return f"No assets found matching the filter key: '{filter_key}'."
-
-    #             # Output Token Optimization
-    #             optimized_objects = []
-    #             for obj in all_objects:
-    #                 # Strip out null, empty string, or empty list values
-    #                 cleaned_obj = {k: v for k, v in obj.items() if v not in (None, "", [], {})}
-    #                 optimized_objects.append(cleaned_obj)
-
-    #             return self._format_to_markdown(optimized_objects)
-
-    #         except Exception as e:
-    #             return f"Error filtering assets by insight key: {str(e)}"

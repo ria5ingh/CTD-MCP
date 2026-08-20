@@ -12,8 +12,11 @@ from src.modules.base import BaseModule
 
 class SystemModule(BaseModule):
     """
-    Unified interface for querying Claroty CTD system health, license status, 
-    operational mode, network configurations, and subnets.
+    System module for Claroty CTD MCP Server.
+
+    This module provides tools for monitoring host system health, edge sensor status, 
+    verifying software versions and licenses, auditing DPI protocol configurations,
+    and retrieving network profiles, interfaces, and subnets.
     """
 
     DEFAULT_PROTOCOLS = {

@@ -12,11 +12,11 @@ from src.resources.vulnerabilities import VULNERABILITIES_SCHEMA_URI, VULNERABIL
 
 class VulnerabilitiesModule(BaseModule):
     """
-    Unified interface for querying and analyzing vulnerabilities via Claroty CTD REST API endpoints.
+    Vulnerabilities module for Claroty CTD MCP Server.
 
-    Provides mechanisms for bulk vulnerability discovery (`search_vulnerabilities`), asset-to-CVE 
-    mapping (`search_asset_vulnerabilities`), and deep-dive metadata extraction (`get_vulnerability_details`).
-    Use this module to perform threat intelligence lookups and identify exposed assets.
+    This module provides tools for querying and analyzing network vulnerabilities (CVEs), 
+    including searching confirmed vulnerabilities, mapping affected assets to CVEs 
+    (and vice-versa), and extracting in-depth metadata and metrics for specific CVEs.
     """
 
     def register_tools(self, server: FastMCP) -> None:
@@ -137,7 +137,9 @@ class VulnerabilitiesModule(BaseModule):
             description="Page number to fetch. Use this to paginate through results if the response indicates more pages are available.",
         ),
     ) -> str:
-        """Find CONFIRMED vulnerabilities (CVEs) based on keyword search, severity, exploitability, or other criteria."""
+        #"""Find CONFIRMED vulnerabilities (CVEs) based on keyword search, severity, exploitability, or other criteria."""
+        """Find ALL (confirmed AND potentially relevant) vulnerabilities (CVEs) based on keyword search, severity, exploitability, or other criteria."""
+
         try:
             current_page = page if page is not None else 1
             per_page = min(limit, 500) if limit is not None else 500
@@ -148,7 +150,7 @@ class VulnerabilitiesModule(BaseModule):
                 'ghost__exact': False,
                 'affected_assets__exact': 0, 
                 'special_hint__exact': 0,    
-                'relevance__exact': 1,  #ONLY CONFIRMED
+                #'relevance__exact': 1,  #ONLY CONFIRMED
                 'sort': sort_by,
                 'page': current_page,
                 'per_page': per_page
@@ -180,12 +182,15 @@ class VulnerabilitiesModule(BaseModule):
             for item in objects:
                 cve_id = item.get("cve_id", "N/A")
                 res_id = item.get("resource_id", "N/A")
-                
+
                 assets_count = item.get("assets_count", {})
-                affected_assets = (
-                    assets_count.get("total_affected_assets_count", 0) 
-                    if isinstance(assets_count, dict) else 0
-                )
+                if isinstance(assets_count, dict):
+                    total_affected = assets_count.get("total_affected_assets_count", 0)
+                    confirmed = assets_count.get("confirmed_assets_count", 0)
+                    potential = assets_count.get("potentially_relevant_assets_count", 0)
+                    affected_assets = f"{total_affected} (Confirmed: {confirmed}, Potential: {potential})"
+                else:
+                    affected_assets = "0"
 
                 # Extract CVSS Score safely (prefer v3, fallback to v2)
                 cvss_v3 = item.get("cvss_v3_score")
@@ -246,7 +251,7 @@ class VulnerabilitiesModule(BaseModule):
         """List all confirmed assets per vulnerabilities in the environment.
         
         Use this tool to view affected devices grouped by CVE, or to check 
-        all assets affected by aspecific CVE by passing `cve_id`. Call `get_vulnerabilities_schema`
+        all CONFIRMED assets affected by aspecific CVE by passing `cve_id`. Call `get_vulnerabilities_schema`
         to view allowed filter keys and enum mappings before executing this tool.
         """
         try:
@@ -366,7 +371,7 @@ class VulnerabilitiesModule(BaseModule):
     ) -> str:
         """List all confirmed vulnerabilities per assets in the environment.
         
-        Use this tool to view CVEs grouped by affected device, or when checking all confirmed CVEs 
+        Use this tool to view CVEs grouped by affected device, or when checking all CONFIRMED CVEs 
         for a specific asset by passing `asset_id`. Call `get_vulnerabilities_schema` to view
         allowed filter keys and enum mappings before executing this tool.
         """
