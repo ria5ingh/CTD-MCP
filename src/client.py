@@ -14,8 +14,8 @@ class CTDClient:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         root_dir = os.path.dirname(current_dir)
         env_path = os.path.join(root_dir, '.env')
-        
-        load_dotenv(dotenv_path=env_path)
+
+        load_dotenv(dotenv_path=env_path, override=True)
         self.host = os.getenv("CTD_HOST")
         self.username = os.getenv("CTD_USERNAME")
         self.password = os.getenv("CTD_PASSWORD")
