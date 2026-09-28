@@ -1,4 +1,4 @@
-# CTD-MCP Server: On-Premises AI Enablement for Continuous Threat Detection
+# CTD-MCP Server: On-Prem AI Enablement for CTD
 
 This repository contains the custom **Model Context Protocol (MCP)** server for Claroty **Continuous Threat Detection (CTD)**. It bridges an intuitive, natural language chat interface with the Claroty CTD REST API, enabling operators to query asset inventories, threat baselines, risk metrics, and vulnerability data using localized AI models without cloud dependencies.
 
