@@ -118,10 +118,10 @@ class AssetsModule(BaseModule):
                 # Base default parameters
                 params: dict[str, Any] = {
                     'special_hint__exact': 0,  # Default to unicast
-                    'valid__exact': True,      # Default to valid assets
-                    'ghost__exact': False,     # Default to non-ghost assets
-                    'approved__exact': True,   # Default to approved assets
-                    'site_id__exact' : 1,
+                    #'valid__exact': 'true',      # Default to valid assets
+                    'ghost__exact': 'false',     # Default to non-ghost assets
+                    #'approved__exact': 'true',   # Default to approved assets
+                    #'site_id__exact' : 1,
                     'fields': ",;$".join(clean_fields)
                 }
 

@@ -1,0 +1,60 @@
+d# CTD Vulnerabilities Search Schema and Guide
+
+This document provides the allowed search filters, default parameters, and return fields for the tools in the Vulnerabilities module.
+
+## 1. Tool-Specific Defaults & Behaviors
+
+### A. `search_vulnerabilities`
+**Purpose:** Lists standalone vulnerabilities (CVEs) present in the environment.
+**Default Parameters Applied:**
+* `site_id__exact`: `1`
+* `ghost__exact`: `false`
+* `affected_assets__exact`: `0` (Only returns CVEs matched to assets in your environment)
+* `special_hint__exact`: `0` (Unicast)
+
+
+### B. `list_assets_per_cve` & `list_cves_per_asset`
+**Purpose:** Maps the specific relationships betwee n Assets and CVEs.
+**Default Parameters Applied:**
+* `site_id__exact`: `1`
+* `ghost__exact`: `false`
+* `special_hint__exact`: `0` (Unicast)
+
+---
+
+## 2. Allowed Search Filters
+Use these keys in the `filters` dictionary. 
+
+*(Note: Filters with NO tool label can be used across ALL vulnerability tools. Tool-specific filters are explicitly marked in bold and will fail if used on the wrong tool).*
+
+| Filter Key | Type | Description | Example |
+| :--- | :--- | :--- | :--- |
+| `actively_exploited__exact` | Boolean | Exploited in the wild flag. | `true` |
+| `relevance__exact` | Integer | Vulnerability relevance. **Enums:** `0` (Potentially Relevant), `1` (Confirmed) | `1` |
+| `status__exact` | Integer | Vulnerability status. **Enums:** `0` (Open), `1` (Fixed), `2` (Irrelevant), `3` (Accept), `4` (Manually Fixed). | `0` |
+| `epss_score__exact` | String | EPSS score category. **Enums:** `"low"`, `"medium"`, `"high"`, `"critical"`. | `"high"` |
+| `cvss_severity`| String | CVSS v3 severity level. **Enums:** `"low"` (1.0-3.9), `"medium"` (4.0-6.9), `"high"` (7.0-8.9), `"critical"` (9.0-10.0). | `"critical"` |
+| `cve_id__exact` | String | **(`list_assets_per_cve` & `list_cves_per_asset` ONLY)** Exact standard CVE identifier. | `"CVE-2020-6088"` |
+| `asset_id__exact` | String | **(`list_assets_per_cve` & `list_cves_per_asset` ONLY)** Exact asset resource ID. | `"11-1"` |
+| `virtual_zone__exact` | String | **(`list_assets_per_cve` & `list_cves_per_asset` ONLY)** Exact virtual zone resource ID. | `"23-1"` |
+| `match_type__exact` | Integer | **(`list_assets_per_cve` & `list_cves_per_asset` ONLY)** How the CVE was matched to the asset. **Enums:** `0` (Vendor), `1` (Program), `2` (WindowsKB), `3` (WindowsOS). | `0` |
+| `q__icontains` | String | **(`search_vulnerabilities` ONLY)** Open text search. Matches against vulnerability names, descriptions, or general text. | `"use after free"` |
+| `class_type__exact` | Integer | **(`search_vulnerabilities` ONLY)** Asset class. **Enums:** `0` (OT), `1` (IT), `2` (IoT). | `0` |
+
+---
+
+## 3. Allowed Return Fields (`get_vulnerability_details` ONLY)
+When using `get_vulnerability_details`, you may pass a list of these exact strings in the `fields` array parameter. If omitted, the tool returns a standard summary.
+
+* `cve_id` — Standard CVE identifier string
+* `description` — Full text description of the vulnerability and its impact
+* `cvss_v3_score` — CVSS v3 score object (value and severity label)
+* `cvss_v2_score` — CVSS v2 score object
+* `epss_score` — EPSS score object (value and probability label)
+* `actively_exploited` — Boolean flag indicating known threat activity in the wild
+* `access_vector` — Exploitation path required (e.g., "Network", "Local")
+* `detection_date` — Date first detected in the CTD environment
+* `release_date` — Date published to NVD
+* `advisory_names` — List of vendor advisory IDs
+* `assets_count` — Formatted breakdown of Confirmed, Potentially Relevant, IT, IoT, and OT assets.
+"""
